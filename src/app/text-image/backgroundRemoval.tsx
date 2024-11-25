@@ -1,4 +1,3 @@
-// src/app/text-image/page.tsx
 'use client'
 
 import React, { createContext, useContext, useState } from 'react';
