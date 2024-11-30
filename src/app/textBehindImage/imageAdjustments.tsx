@@ -17,6 +17,11 @@ export interface ImageAdjustments {
   saturation: number
   blur: number
   opacity: number
+  filters: {
+    grayscale: boolean
+    sepia: boolean
+    invert: boolean
+  }
 }
 
 export const defaultAdjustments: ImageAdjustments = {
@@ -24,7 +29,12 @@ export const defaultAdjustments: ImageAdjustments = {
   contrast: 100,
   saturation: 100,
   blur: 0,
-  opacity: 100
+  opacity: 100,
+  filters: {
+    grayscale: false,
+    sepia: false,
+    invert: false
+  }
 }
 
 export function ImageAdjustments({ adjustments, onAdjustmentsChange }: ImageAdjustmentsProps) {
