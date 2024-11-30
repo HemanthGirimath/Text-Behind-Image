@@ -2,13 +2,13 @@
 
 import React, { useState, useCallback } from 'react'
 import { removeBackground } from '@imgly/background-removal'
-import { Upload, Loader2, Download, Trash2 } from 'lucide-react'
+import { Loader2, Download, Trash2, Settings2 } from 'lucide-react'
 import { Button } from '@/components/UI/button'
-import { Card, CardContent } from '@/components/UI/card'
 import { Alert, AlertDescription } from '@/components/UI/alert'
-import TextEditor, { TextStyle } from '@/app/textBehindImage/textEditor'
-import { ResultDisplay } from '@/app/textBehindImage/resultDisplay'
-import { TextConfig } from '@/app/textBehindImage/textControles'
+import { ImageUploader } from './textBehindImage/imageUploder'
+import { ResultDisplay } from './textBehindImage/resultDisplay'
+import { defaultAdjustments, type ImageAdjustments } from './textBehindImage/imageAdjustments'
+import TextEditor, { type TextStyle } from './textBehindImage/textEditor'
 
 export default function Home() {
   const [image, setImage] = useState<string | null>(null)
@@ -43,6 +43,33 @@ export default function Home() {
         color: '#000000'
       }
     },
+    effects: {
+      shadow: {
+        enabled: false,
+        blur: 5,
+        color: '#000000',
+        offsetX: 2,
+        offsetY: 2
+      },
+      glow: {
+        enabled: false,
+        blur: 10,
+        color: '#ffffff',
+        strength: 1
+      },
+      gradient: {
+        enabled: false,
+        type: 'linear',
+        colors: ['#ff0000', '#00ff00'],
+        angle: 0
+      },
+      outline: {
+        enabled: false,
+        width: 2,
+        color: '#000000',
+        blur: 0
+      }
+    },
     watermark: {
       enabled: false,
       text: '',
@@ -50,31 +77,20 @@ export default function Home() {
       fontSize: 24
     }
   })
+  const [imageAdjustments, setImageAdjustments] = useState<ImageAdjustments>(defaultAdjustments)
 
-  const handleFile = useCallback((file: File) => {
-    if (file.size > 5 * 1024 * 1024) {
-      setError('File size must be less than 5MB')
-      return
-    }
-
+  const handleImageSelect = useCallback((file: File) => {
     const reader = new FileReader()
     reader.onload = (e) => {
       const result = e.target?.result
       if (typeof result === 'string') {
         setImage(result)
-        setProcessedImage(null) 
+        setProcessedImage(null)
         setError(null)
       }
     }
     reader.readAsDataURL(file)
   }, [])
-
-  const handleDrop = useCallback((e: React.DragEvent<HTMLDivElement>) => {
-    e.preventDefault()
-    setIsDragging(false)
-    const file = e.dataTransfer.files[0]
-    if (file) handleFile(file)
-  }, [handleFile])
 
   const handleBackgroundRemoval = useCallback(async () => {
     if (!image) return
@@ -103,26 +119,17 @@ export default function Home() {
   }, [])
 
   const handleDownload = useCallback(async () => {
-    const canvas = document.querySelector('canvas')
-    if (!canvas) return
-    
     try {
-      // Convert the canvas (including text) to a blob
-      const blob = await new Promise<Blob>((resolve) => {
-        canvas.toBlob((blob) => {
-          if (blob) resolve(blob)
-        }, 'image/png', 1.0)
-      })
-      
-      // Create download link
-      const url = window.URL.createObjectURL(blob)
+      const canvas = document.querySelector('canvas')
+      if (!canvas) return
+
+      const dataUrl = canvas.toDataURL('image/png')
       const link = document.createElement('a')
-      link.href = url
       link.download = 'text-behind-image.png'
+      link.href = dataUrl
       document.body.appendChild(link)
       link.click()
       document.body.removeChild(link)
-      window.URL.revokeObjectURL(url)
     } catch (err) {
       console.error('Download failed:', err)
       setError('Failed to download image')
@@ -135,49 +142,14 @@ export default function Home() {
       <div className="flex h-[calc(100vh-5rem)]">
         <div className="flex-1 p-4 overflow-y-auto">
           {!image ? (
-            <Card>
-              <CardContent
-                className={`p-6 border-2 border-dashed rounded-lg transition-colors
-                  ${isDragging ? 'border-blue-500 bg-blue-50' : 'border-gray-300'}`}
-                onDrop={handleDrop}
-                onDragOver={(e) => {
-                  e.preventDefault()
-                  setIsDragging(true)
-                }}
-                onDragLeave={() => setIsDragging(false)}
-              >
-                <div className="text-center">
-                  <Upload className="mx-auto h-12 w-12 text-gray-400" />
-                  <div className="mt-4">
-                    <input
-                      type="file"
-                      className="hidden"
-                      id="file-upload"
-                      accept="image/*"
-                      onChange={(e) => {
-                        const file = e.target.files?.[0]
-                        if (file) handleFile(file)
-                      }}
-                    />
-                    <label htmlFor="file-upload">
-                      <Button variant="secondary" className="mb-2">
-                        Select Image
-                      </Button>
-                    </label>
-                    <p className="text-sm text-gray-500">or drag and drop</p>
-                    <p className="text-xs text-gray-500 mt-1">
-                      PNG, JPG, GIF up to 5MB
-                    </p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+            <ImageUploader onImageSelected={handleImageSelect} />
           ) : (
             <div className="relative w-[800px] h-[600px] mx-auto rounded-lg overflow-hidden">
               <ResultDisplay 
                 originalImage={image}
                 processedImage={processedImage}
                 textStyle={textStyle}
+                imageAdjustments={imageAdjustments}
                 onTextStyleChange={setTextStyle}
               />
               {isProcessing && (
@@ -185,22 +157,26 @@ export default function Home() {
                   <Loader2 className="h-8 w-8 animate-spin text-white" />
                 </div>
               )}
-              <div className="absolute top-2 right-2 flex gap-2">
-                {processedImage && (
-                  <Button
-                    variant="secondary"
-                    size="icon"
-                    onClick={handleDownload}
-                    title="Download"
-                  >
-                    <Download className="h-4 w-4" />
-                  </Button>
-                )}
+              <div className="absolute top-4 right-4 flex gap-2">
+                <Button
+                  variant="secondary"
+                  size="icon"
+                  onClick={handleBackgroundRemoval}
+                  disabled={isProcessing}
+                >
+                  <Settings2 className="h-4 w-4" />
+                </Button>
+                <Button
+                  variant="secondary"
+                  size="icon"
+                  onClick={handleDownload}
+                >
+                  <Download className="h-4 w-4" />
+                </Button>
                 <Button
                   variant="destructive"
                   size="icon"
                   onClick={handleDeleteImage}
-                  title="Delete"
                 >
                   <Trash2 className="h-4 w-4" />
                 </Button>
@@ -220,9 +196,10 @@ export default function Home() {
           isProcessing={isProcessing}
           textStyle={textStyle}
           onTextStyleChange={setTextStyle}
+          imageAdjustments={imageAdjustments}
+          onImageAdjustmentsChange={setImageAdjustments}
         />
       </div>
     </main>
   )
 }
-

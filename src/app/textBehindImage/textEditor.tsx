@@ -3,7 +3,8 @@
 import React, { useState } from 'react'
 import { Loader2, Type, Palette, RotateCw, MoveVertical, 
   AlignLeft, AlignCenter, AlignRight, 
-  ArrowUpDown, ArrowLeftRight, Bold, Italic, Underline
+  ArrowUpDown, ArrowLeftRight, Bold, Italic, Underline,
+  Settings2
 } from 'lucide-react'
 import { Button } from '@/components/UI/button'
 import { Input } from '@/components/UI/input'
@@ -25,6 +26,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import { Lock, ChevronDown, Crown } from 'lucide-react'
 import { Switch } from "@/components/UI/switch"
 import { Label } from "@/components/UI/label"
+import { ImageAdjustments, defaultAdjustments } from './imageAdjustments'
 
 interface TextEditorProps {
   image: string | null
@@ -33,9 +35,11 @@ interface TextEditorProps {
   isProcessing: boolean
   textStyle: TextStyle
   onTextStyleChange: (style: TextStyle) => void
+  imageAdjustments: ImageAdjustments
+  onImageAdjustmentsChange: (adjustments: ImageAdjustments) => void
 }
 
-export interface TextStyle {
+interface TextStyle {
   text: string
   fontSize: number
   fontFamily: string
@@ -60,6 +64,33 @@ export interface TextStyle {
       enabled: boolean
       width: number
       color: string
+    }
+  }
+  effects: {
+    shadow: {
+      enabled: boolean
+      blur: number
+      color: string
+      offsetX: number
+      offsetY: number
+    }
+    glow: {
+      enabled: boolean
+      blur: number
+      color: string
+      strength: number
+    }
+    gradient: {
+      enabled: boolean
+      type: 'linear'
+      colors: string[]
+      angle: number
+    }
+    outline: {
+      enabled: boolean
+      width: number
+      color: string
+      blur: number
     }
   }
   watermark: {
@@ -113,6 +144,33 @@ const defaultTextStyle: TextStyle = {
       color: '#000000'
     }
   },
+  effects: {
+    shadow: {
+      enabled: false,
+      blur: 5,
+      color: '#000000',
+      offsetX: 2,
+      offsetY: 2
+    },
+    glow: {
+      enabled: false,
+      blur: 10,
+      color: '#ffffff',
+      strength: 1
+    },
+    gradient: {
+      enabled: false,
+      type: 'linear',
+      colors: ['#ff0000', '#00ff00'],
+      angle: 0
+    },
+    outline: {
+      enabled: false,
+      width: 2,
+      color: '#000000',
+      blur: 0
+    }
+  },
   watermark: {
     enabled: false,
     text: '',
@@ -127,7 +185,9 @@ const TextEditor: React.FC<TextEditorProps> = ({
   onProcess, 
   isProcessing, 
   textStyle, 
-  onTextStyleChange 
+  onTextStyleChange,
+  imageAdjustments,
+  onImageAdjustmentsChange
 }) => {
   const handleTextChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     onTextStyleChange({
@@ -345,7 +405,422 @@ const TextEditor: React.FC<TextEditorProps> = ({
         <Collapsible>
           <CollapsibleTrigger className="flex w-full items-center justify-between rounded-lg bg-muted p-3">
             <div className="flex items-center gap-2">
-              <Type className="h-4 w-4" />
+              <Palette className="h-4 w-4" />
+              <span className="font-medium">Text Effects</span>
+            </div>
+            <ChevronDown className="h-4 w-4" />
+          </CollapsibleTrigger>
+          <CollapsibleContent className="space-y-4 p-3">
+            {/* Shadow Effect */}
+            <div className="space-y-4">
+              <div className="flex items-center space-x-2">
+                <Switch
+                  checked={textStyle.effects.shadow.enabled}
+                  onCheckedChange={(enabled) => onTextStyleChange({
+                    ...textStyle,
+                    effects: {
+                      ...textStyle.effects,
+                      shadow: { ...textStyle.effects.shadow, enabled }
+                    }
+                  })}
+                />
+                <Label>Shadow Effect</Label>
+              </div>
+              {textStyle.effects.shadow.enabled && (
+                <div className="space-y-4 pl-6">
+                  <div className="space-y-2">
+                    <Label className="text-xs">Blur</Label>
+                    <Slider
+                      value={[textStyle.effects.shadow.blur]}
+                      min={0}
+                      max={20}
+                      step={1}
+                      onValueChange={([blur]) => onTextStyleChange({
+                        ...textStyle,
+                        effects: {
+                          ...textStyle.effects,
+                          shadow: { ...textStyle.effects.shadow, blur }
+                        }
+                      })}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-xs">Offset X</Label>
+                    <Slider
+                      value={[textStyle.effects.shadow.offsetX]}
+                      min={-20}
+                      max={20}
+                      step={1}
+                      onValueChange={([offsetX]) => onTextStyleChange({
+                        ...textStyle,
+                        effects: {
+                          ...textStyle.effects,
+                          shadow: { ...textStyle.effects.shadow, offsetX }
+                        }
+                      })}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-xs">Offset Y</Label>
+                    <Slider
+                      value={[textStyle.effects.shadow.offsetY]}
+                      min={-20}
+                      max={20}
+                      step={1}
+                      onValueChange={([offsetY]) => onTextStyleChange({
+                        ...textStyle,
+                        effects: {
+                          ...textStyle.effects,
+                          shadow: { ...textStyle.effects.shadow, offsetY }
+                        }
+                      })}
+                    />
+                  </div>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button variant="outline" className="w-full justify-start">
+                        <div className="flex items-center gap-2">
+                          <div 
+                            className="h-4 w-4 rounded-full border"
+                            style={{ backgroundColor: textStyle.effects.shadow.color }}
+                          />
+                          <span>Shadow Color</span>
+                        </div>
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-64">
+                      <Input
+                        type="color"
+                        value={textStyle.effects.shadow.color}
+                        onChange={(e) => onTextStyleChange({
+                          ...textStyle,
+                          effects: {
+                            ...textStyle.effects,
+                            shadow: { ...textStyle.effects.shadow, color: e.target.value }
+                          }
+                        })}
+                      />
+                    </PopoverContent>
+                  </Popover>
+                </div>
+              )}
+            </div>
+
+            {/* Glow Effect */}
+            <div className="space-y-4">
+              <div className="flex items-center space-x-2">
+                <Switch
+                  checked={textStyle.effects.glow.enabled}
+                  onCheckedChange={(enabled) => onTextStyleChange({
+                    ...textStyle,
+                    effects: {
+                      ...textStyle.effects,
+                      glow: { ...textStyle.effects.glow, enabled }
+                    }
+                  })}
+                />
+                <Label>Glow Effect</Label>
+              </div>
+              {textStyle.effects.glow.enabled && (
+                <div className="space-y-4 pl-6">
+                  <div className="space-y-2">
+                    <Label className="text-xs">Blur</Label>
+                    <Slider
+                      value={[textStyle.effects.glow.blur]}
+                      min={0}
+                      max={20}
+                      step={1}
+                      onValueChange={([blur]) => onTextStyleChange({
+                        ...textStyle,
+                        effects: {
+                          ...textStyle.effects,
+                          glow: { ...textStyle.effects.glow, blur }
+                        }
+                      })}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-xs">Strength</Label>
+                    <Slider
+                      value={[textStyle.effects.glow.strength]}
+                      min={0}
+                      max={2}
+                      step={0.1}
+                      onValueChange={([strength]) => onTextStyleChange({
+                        ...textStyle,
+                        effects: {
+                          ...textStyle.effects,
+                          glow: { ...textStyle.effects.glow, strength }
+                        }
+                      })}
+                    />
+                  </div>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button variant="outline" className="w-full justify-start">
+                        <div className="flex items-center gap-2">
+                          <div 
+                            className="h-4 w-4 rounded-full border"
+                            style={{ backgroundColor: textStyle.effects.glow.color }}
+                          />
+                          <span>Glow Color</span>
+                        </div>
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-64">
+                      <Input
+                        type="color"
+                        value={textStyle.effects.glow.color}
+                        onChange={(e) => onTextStyleChange({
+                          ...textStyle,
+                          effects: {
+                            ...textStyle.effects,
+                            glow: { ...textStyle.effects.glow, color: e.target.value }
+                          }
+                        })}
+                      />
+                    </PopoverContent>
+                  </Popover>
+                </div>
+              )}
+            </div>
+
+            {/* Gradient Effect */}
+            <div className="space-y-4">
+              <div className="flex items-center space-x-2">
+                <Switch
+                  checked={textStyle.effects.gradient.enabled}
+                  onCheckedChange={(enabled) => onTextStyleChange({
+                    ...textStyle,
+                    effects: {
+                      ...textStyle.effects,
+                      gradient: { ...textStyle.effects.gradient, enabled }
+                    }
+                  })}
+                />
+                <Label>Gradient Effect</Label>
+              </div>
+              {textStyle.effects.gradient.enabled && (
+                <div className="space-y-4 pl-6">
+                  <div className="space-y-2">
+                    <Label className="text-xs">Angle</Label>
+                    <Slider
+                      value={[textStyle.effects.gradient.angle]}
+                      min={0}
+                      max={360}
+                      step={1}
+                      onValueChange={([angle]) => onTextStyleChange({
+                        ...textStyle,
+                        effects: {
+                          ...textStyle.effects,
+                          gradient: { ...textStyle.effects.gradient, angle }
+                        }
+                      })}
+                    />
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <Label className="text-xs">Color 1</Label>
+                      <Input
+                        type="color"
+                        value={textStyle.effects.gradient.colors[0]}
+                        onChange={(e) => onTextStyleChange({
+                          ...textStyle,
+                          effects: {
+                            ...textStyle.effects,
+                            gradient: { 
+                              ...textStyle.effects.gradient, 
+                              colors: [e.target.value, textStyle.effects.gradient.colors[1]] 
+                            }
+                          }
+                        })}
+                      />
+                    </div>
+                    <div>
+                      <Label className="text-xs">Color 2</Label>
+                      <Input
+                        type="color"
+                        value={textStyle.effects.gradient.colors[1]}
+                        onChange={(e) => onTextStyleChange({
+                          ...textStyle,
+                          effects: {
+                            ...textStyle.effects,
+                            gradient: { 
+                              ...textStyle.effects.gradient, 
+                              colors: [textStyle.effects.gradient.colors[0], e.target.value] 
+                            }
+                          }
+                        })}
+                      />
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Outline Effect */}
+            <div className="space-y-4">
+              <div className="flex items-center space-x-2">
+                <Switch
+                  checked={textStyle.effects.outline.enabled}
+                  onCheckedChange={(enabled) => onTextStyleChange({
+                    ...textStyle,
+                    effects: {
+                      ...textStyle.effects,
+                      outline: { ...textStyle.effects.outline, enabled }
+                    }
+                  })}
+                />
+                <Label>Outline Effect</Label>
+              </div>
+              {textStyle.effects.outline.enabled && (
+                <div className="space-y-4 pl-6">
+                  <div className="space-y-2">
+                    <Label className="text-xs">Width</Label>
+                    <Slider
+                      value={[textStyle.effects.outline.width]}
+                      min={1}
+                      max={10}
+                      step={1}
+                      onValueChange={([width]) => onTextStyleChange({
+                        ...textStyle,
+                        effects: {
+                          ...textStyle.effects,
+                          outline: { ...textStyle.effects.outline, width }
+                        }
+                      })}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-xs">Blur</Label>
+                    <Slider
+                      value={[textStyle.effects.outline.blur]}
+                      min={0}
+                      max={10}
+                      step={1}
+                      onValueChange={([blur]) => onTextStyleChange({
+                        ...textStyle,
+                        effects: {
+                          ...textStyle.effects,
+                          outline: { ...textStyle.effects.outline, blur }
+                        }
+                      })}
+                    />
+                  </div>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button variant="outline" className="w-full justify-start">
+                        <div className="flex items-center gap-2">
+                          <div 
+                            className="h-4 w-4 rounded-full border"
+                            style={{ backgroundColor: textStyle.effects.outline.color }}
+                          />
+                          <span>Outline Color</span>
+                        </div>
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-64">
+                      <Input
+                        type="color"
+                        value={textStyle.effects.outline.color}
+                        onChange={(e) => onTextStyleChange({
+                          ...textStyle,
+                          effects: {
+                            ...textStyle.effects,
+                            outline: { ...textStyle.effects.outline, color: e.target.value }
+                          }
+                        })}
+                      />
+                    </PopoverContent>
+                  </Popover>
+                </div>
+              )}
+            </div>
+          </CollapsibleContent>
+        </Collapsible>
+
+        <Collapsible>
+          <CollapsibleTrigger className="flex w-full items-center justify-between rounded-lg bg-muted p-3">
+            <div className="flex items-center gap-2">
+              <Settings2 className="h-4 w-4" />
+              <span className="font-medium">Image Adjustments</span>
+            </div>
+            <ChevronDown className="h-4 w-4" />
+          </CollapsibleTrigger>
+          <CollapsibleContent className="space-y-4 p-3">
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <Label className="text-xs">Brightness</Label>
+                  <span className="text-xs text-muted-foreground">{imageAdjustments.brightness}%</span>
+                </div>
+                <Slider
+                  value={[imageAdjustments.brightness]}
+                  min={0}
+                  max={200}
+                  step={1}
+                  onValueChange={([brightness]) => onImageAdjustmentsChange({ ...imageAdjustments, brightness })}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <Label className="text-xs">Contrast</Label>
+                  <span className="text-xs text-muted-foreground">{imageAdjustments.contrast}%</span>
+                </div>
+                <Slider
+                  value={[imageAdjustments.contrast]}
+                  min={0}
+                  max={200}
+                  step={1}
+                  onValueChange={([contrast]) => onImageAdjustmentsChange({ ...imageAdjustments, contrast })}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <Label className="text-xs">Saturation</Label>
+                  <span className="text-xs text-muted-foreground">{imageAdjustments.saturation}%</span>
+                </div>
+                <Slider
+                  value={[imageAdjustments.saturation]}
+                  min={0}
+                  max={200}
+                  step={1}
+                  onValueChange={([saturation]) => onImageAdjustmentsChange({ ...imageAdjustments, saturation })}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <Label className="text-xs">Blur</Label>
+                  <span className="text-xs text-muted-foreground">{imageAdjustments.blur}px</span>
+                </div>
+                <Slider
+                  value={[imageAdjustments.blur]}
+                  min={0}
+                  max={10}
+                  step={0.1}
+                  onValueChange={([blur]) => onImageAdjustmentsChange({ ...imageAdjustments, blur })}
+                />
+              </div>
+
+              <Button 
+                variant="outline" 
+                size="sm" 
+                className="w-full"
+                onClick={() => onImageAdjustmentsChange(defaultAdjustments)}
+              >
+                Reset Adjustments
+              </Button>
+            </div>
+          </CollapsibleContent>
+        </Collapsible>
+
+        <Collapsible>
+          <CollapsibleTrigger className="flex w-full items-center justify-between rounded-lg bg-muted p-3">
+            <div className="flex items-center gap-2">
+              <Crown className="h-4 w-4" />
               <span className="font-medium">Watermark</span>
             </div>
             <ChevronDown className="h-4 w-4" />
@@ -458,5 +933,5 @@ const TextEditor: React.FC<TextEditorProps> = ({
   )
 }
 
+export type { TextStyle }
 export default TextEditor
-
