@@ -1,8 +1,8 @@
 'use client'
 
-import React, { useState, useCallback } from 'react'
+import React, { useState, useCallback, useEffect, useRef } from 'react'
 import { removeBackground } from '@imgly/background-removal'
-import { Loader2, Download, Trash2, Settings2, Wand2, Lock } from 'lucide-react'
+import { Loader2, Download, Trash2, Settings2, Wand2, Lock, Menu, X } from 'lucide-react'
 import { Button } from '@/components/UI/button'
 import { Alert, AlertDescription } from '@/components/UI/alert'
 import { ImageUploader } from '../textBehindImage/imageUploder'
@@ -79,6 +79,28 @@ export default function EditorPage() {
     }
   })
   const [imageAdjustments, setImageAdjustments] = useState<ImageAdjustments>(defaultAdjustments)
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false)
+  const sidebarRef = useRef<HTMLDivElement>(null)
+  const buttonRef = useRef<HTMLButtonElement>(null)
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        isSidebarOpen &&
+        sidebarRef.current &&
+        !sidebarRef.current.contains(event.target as Node) &&
+        buttonRef.current &&
+        !buttonRef.current.contains(event.target as Node)
+      ) {
+        setIsSidebarOpen(false)
+      }
+    }
+
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside)
+    }
+  }, [isSidebarOpen])
 
   const handleImageSelect = useCallback((file: File) => {
     const reader = new FileReader()
@@ -138,8 +160,19 @@ export default function EditorPage() {
   }, [])
 
   return (
-    <main className="h-screen overflow-hidden">
-      <h1 className="text-3xl font-bold p-4">Text Behind Image</h1>
+    <main className="h-screen overflow-hidden relative">
+      <div className="flex items-center justify-between p-4">
+        <h1 className="text-3xl font-bold">Text Behind Image</h1>
+        <Button
+          ref={buttonRef}
+          variant="ghost"
+          size="icon"
+          className="lg:hidden"
+          onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+        >
+          {isSidebarOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
+        </Button>
+      </div>
       <div className="flex h-[calc(100vh-5rem)]">
         <div className="flex-1 p-4 overflow-y-auto">
           {!image ? (
@@ -190,7 +223,16 @@ export default function EditorPage() {
             </Alert>
           )}
         </div>
-        <div className="w-[300px] border-l p-4 bg-background overflow-y-auto">
+        <div 
+          ref={sidebarRef}
+          className={`
+            fixed lg:relative top-0 right-0 h-full w-[300px] 
+            bg-background/90 backdrop-blur-sm border-l p-4 
+            overflow-y-auto transition-transform duration-300 ease-in-out
+            ${isSidebarOpen ? 'translate-x-0' : 'translate-x-full lg:translate-x-0'}
+            z-50
+          `}
+        >
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
             <TabsList className="w-full grid grid-cols-3">
               <TabsTrigger value="text">Text</TabsTrigger>
@@ -203,6 +245,7 @@ export default function EditorPage() {
                 textStyle={textStyle}
                 onTextStyleChange={setTextStyle}
                 controlsOnly={true}
+                onProcessImage={handleBackgroundRemoval}
               />
             </TabsContent>
 

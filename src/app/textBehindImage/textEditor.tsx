@@ -87,12 +87,14 @@ interface TextEditorProps {
   textStyle: TextStyle
   onTextStyleChange: (style: TextStyle) => void
   controlsOnly?: boolean
+  onProcessImage?: () => void
 }
 
 const TextEditor: React.FC<TextEditorProps> = ({
   textStyle,
   onTextStyleChange,
-  controlsOnly = false
+  controlsOnly = false,
+  onProcessImage
 }) => {
   const textRef = useRef<HTMLDivElement>(null)
 
@@ -258,6 +260,7 @@ const TextEditor: React.FC<TextEditorProps> = ({
           <Button 
             className="w-full flex items-center gap-2 py-6 text-lg font-semibold bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 text-white shadow-lg transition-all duration-200 hover:shadow-xl" 
             variant="default"
+            onClick={onProcessImage}
           >
             <ImageDown className="h-5 w-5" />
             Process Image
