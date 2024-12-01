@@ -1,14 +1,11 @@
 'use client'
 
-import React, { useState } from 'react'
-import { Loader2, Type, Palette, RotateCw, MoveVertical, 
-  AlignLeft, AlignCenter, AlignRight, 
-  ArrowUpDown, ArrowLeftRight, Bold, Italic, Underline
-} from 'lucide-react'
-import { Button } from '@/components/UI/button'
+import React, { useRef } from 'react'
 import { Input } from '@/components/UI/input'
+import { Label } from '@/components/UI/label'
 import { Slider } from '@/components/UI/slider'
-import { Card, CardContent } from '@/components/UI/card'
+import { Button } from '@/components/UI/button'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/UI/tabs'
 import {
   Select,
   SelectContent,
@@ -17,23 +14,12 @@ import {
   SelectValue,
 } from '@/components/UI/select'
 import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from '@/components/UI/popover'
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/UI/collapsible"
-import { Lock, ChevronDown, Crown } from 'lucide-react'
-import { Switch } from "@/components/UI/switch"
-import { Label } from "@/components/UI/label"
-
-interface TextEditorProps {
-  image: string | null
-  processedImage: string | null
-  onProcess: () => Promise<void>
-  isProcessing: boolean
-  textStyle: TextStyle
-  onTextStyleChange: (style: TextStyle) => void
-}
+  Type,
+  Move,
+  Palette,
+  Sliders,
+  ImageDown
+} from 'lucide-react'
 
 export interface TextStyle {
   text: string
@@ -62,6 +48,33 @@ export interface TextStyle {
       color: string
     }
   }
+  effects: {
+    shadow: {
+      enabled: boolean
+      blur: number
+      color: string
+      offsetX: number
+      offsetY: number
+    }
+    glow: {
+      enabled: boolean
+      blur: number
+      color: string
+      strength: number
+    }
+    gradient: {
+      enabled: boolean
+      type: 'linear' | 'radial'
+      colors: string[]
+      angle: number
+    }
+    outline: {
+      enabled: boolean
+      width: number
+      color: string
+      blur: number
+    }
+  }
   watermark: {
     enabled: boolean
     text: string
@@ -70,393 +83,210 @@ export interface TextStyle {
   }
 }
 
-const FONT_FAMILIES = [
-  'Arial',
-  'Helvetica',
-  'Times New Roman',
-  'Courier',
-  'Verdana',
-  'Georgia',
-  'Palatino',
-  'Garamond',
-  'Bookman',
-  'Comic Sans MS',
-  'Trebuchet MS',
-  'Arial Black',
-  'Impact'
-]
-
-const defaultTextStyle: TextStyle = {
-  text: 'Your text here',
-  fontSize: 72,
-  fontFamily: 'Arial',
-  color: '#ffffff',
-  x: 50,
-  y: 50,
-  letterSpacing: 0,
-  opacity: 100,
-  rotation: 0,
-  direction: 'horizontal',
-  align: 'center',
-  verticalAlign: 'middle',
-  transform: {
-    scale: { x: 1, y: 1 },
-    skew: { x: 0, y: 0 }
-  },
-  style: {
-    bold: false,
-    italic: false,
-    underline: false,
-    stroke: {
-      enabled: false,
-      width: 2,
-      color: '#000000'
-    }
-  },
-  watermark: {
-    enabled: false,
-    text: '',
-    position: 'bottom-right',
-    fontSize: 24
-  }
+interface TextEditorProps {
+  textStyle: TextStyle
+  onTextStyleChange: (style: TextStyle) => void
+  controlsOnly?: boolean
 }
 
-const TextEditor: React.FC<TextEditorProps> = ({ 
-  image, 
-  processedImage, 
-  onProcess, 
-  isProcessing, 
-  textStyle, 
-  onTextStyleChange 
+const TextEditor: React.FC<TextEditorProps> = ({
+  textStyle,
+  onTextStyleChange,
+  controlsOnly = false
 }) => {
-  const handleTextChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    onTextStyleChange({
-      ...textStyle,
-      text: e.target.value
-    })
-  }
+  const textRef = useRef<HTMLDivElement>(null)
 
-  return (
-    <div className="w-[320px] border-l bg-background overflow-y-auto h-full">
-      <div className="px-4 py-6 space-y-4">
-        <Collapsible defaultOpen>
-          <CollapsibleTrigger className="flex w-full items-center justify-between rounded-lg bg-muted p-3">
-            <div className="flex items-center gap-2">
+  if (controlsOnly) {
+    return (
+      <div className="space-y-4">
+        <Tabs defaultValue="text" className="w-full">
+          <TabsList className="w-full grid grid-cols-3">
+            <TabsTrigger value="text">
               <Type className="h-4 w-4" />
-              <span className="font-medium">Text</span>
+            </TabsTrigger>
+            <TabsTrigger value="transform">
+              <Sliders className="h-4 w-4" />
+            </TabsTrigger>
+            <TabsTrigger value="position">
+              <Move className="h-4 w-4" />
+            </TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="text" className="space-y-4">
+            <div>
+              <Label>Text Content</Label>
+              <Input
+                value={textStyle.text}
+                onChange={(e) => onTextStyleChange({ ...textStyle, text: e.target.value })}
+              />
             </div>
-            <ChevronDown className="h-4 w-4" />
-          </CollapsibleTrigger>
-          <CollapsibleContent className="space-y-4 p-3">
-            <Input
-              value={textStyle.text}
-              onChange={handleTextChange}
-              placeholder="Enter your text"
-              className="font-medium"
-            />
-
-            <div className="space-y-4">
-              <Button 
-                variant="outline" 
-                size="sm" 
-                className="w-full"
-                onClick={() => onTextStyleChange(defaultTextStyle)}
-              >
-                Reset All Settings
-              </Button>
-
+            <div>
+              <Label>Font Size</Label>
+              <Slider
+                value={[textStyle.fontSize]}
+                min={12}
+                max={200}
+                step={1}
+                onValueChange={(value) => onTextStyleChange({ ...textStyle, fontSize: value[0] })}
+              />
+            </div>
+            <div>
+              <Label>Color</Label>
+              <Input
+                type="color"
+                value={textStyle.color}
+                onChange={(e) => onTextStyleChange({ ...textStyle, color: e.target.value })}
+              />
+            </div>
+            <div>
+              <Label>Font Family</Label>
               <Select
                 value={textStyle.fontFamily}
-                onValueChange={(fontFamily) => onTextStyleChange({ ...textStyle, fontFamily })}
+                onValueChange={(value) => onTextStyleChange({ ...textStyle, fontFamily: value })}
               >
                 <SelectTrigger>
-                  <SelectValue placeholder="Font Family" />
+                  <SelectValue placeholder="Select font" />
                 </SelectTrigger>
                 <SelectContent>
-                  {FONT_FAMILIES.map((font) => (
-                    <SelectItem key={font} value={font}>
-                      <span style={{ fontFamily: font }}>{font}</span>
-                    </SelectItem>
-                  ))}
+                  <SelectItem value="Arial">Arial</SelectItem>
+                  <SelectItem value="Times New Roman">Times New Roman</SelectItem>
+                  <SelectItem value="Courier New">Courier New</SelectItem>
+                  <SelectItem value="Georgia">Georgia</SelectItem>
+                  <SelectItem value="Verdana">Verdana</SelectItem>
+                  <SelectItem value="Helvetica">Helvetica</SelectItem>
+                  <SelectItem value="Roboto">Roboto</SelectItem>
+                  <SelectItem value="Open Sans">Open Sans</SelectItem>
+                  <SelectItem value="Lato">Lato</SelectItem>
+                  <SelectItem value="Montserrat">Montserrat</SelectItem>
+                  <SelectItem value="Comic Sans MS">Comic Sans MS</SelectItem>
+                  <SelectItem value="Impact">Impact</SelectItem>
                 </SelectContent>
               </Select>
-
-              <div className="flex gap-2">
-                <Button
-                  variant={textStyle.style.bold ? "default" : "outline"}
-                  size="icon"
-                  onClick={() => onTextStyleChange({
-                    ...textStyle,
-                    style: { ...textStyle.style, bold: !textStyle.style.bold }
-                  })}
-                >
-                  <Bold className="h-4 w-4" />
-                </Button>
-                <Button
-                  variant={textStyle.style.italic ? "default" : "outline"}
-                  size="icon"
-                  onClick={() => onTextStyleChange({
-                    ...textStyle,
-                    style: { ...textStyle.style, italic: !textStyle.style.italic }
-                  })}
-                >
-                  <Italic className="h-4 w-4" />
-                </Button>
-              </div>
-
-              <div className="space-y-4">
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <Label className="text-xs">Size</Label>
-                    <span className="text-xs text-muted-foreground">{textStyle.fontSize}px</span>
-                  </div>
-                  <Slider
-                    value={[textStyle.fontSize]}
-                    min={12}
-                    max={800}
-                    step={1}
-                    onValueChange={([fontSize]) => onTextStyleChange({ ...textStyle, fontSize })}
-                    className="py-2"
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <Label className="text-xs">Width Scale</Label>
-                    <span className="text-xs text-muted-foreground">
-                      {(textStyle.transform.scale.x * 100).toFixed(0)}%
-                      {textStyle.transform.scale.x === 1 && " (Normal)"}
-                    </span>
-                  </div>
-                  <Slider
-                    value={[textStyle.transform.scale.x * 100]}
-                    min={50}
-                    max={200}
-                    step={1}
-                    onValueChange={([scale]) => onTextStyleChange({
-                      ...textStyle,
-                      transform: {
-                        ...textStyle.transform,
-                        scale: { ...textStyle.transform.scale, x: scale / 100 }
-                      }
-                    })}
-                    className="py-2"
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <Label className="text-xs">Height Scale</Label>
-                    <span className="text-xs text-muted-foreground">
-                      {(textStyle.transform.scale.y * 100).toFixed(0)}%
-                      {textStyle.transform.scale.y === 1 && " (Normal)"}
-                    </span>
-                  </div>
-                  <Slider
-                    value={[textStyle.transform.scale.y * 100]}
-                    min={50}
-                    max={200}
-                    step={1}
-                    onValueChange={([scale]) => onTextStyleChange({
-                      ...textStyle,
-                      transform: {
-                        ...textStyle.transform,
-                        scale: { ...textStyle.transform.scale, y: scale / 100 }
-                      }
-                    })}
-                    className="py-2"
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label className="text-xs">Letter Spacing</Label>
-                  <Slider
-                    value={[textStyle.letterSpacing]}
-                    min={0}
-                    max={50}
-                    step={1}
-                    onValueChange={([letterSpacing]) => onTextStyleChange({ ...textStyle, letterSpacing })}
-                    className="py-2"
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label className="text-xs">Opacity</Label>
-                  <Slider
-                    value={[textStyle.opacity]}
-                    min={0}
-                    max={100}
-                    step={1}
-                    onValueChange={([opacity]) => onTextStyleChange({ ...textStyle, opacity })}
-                    className="py-2"
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label className="text-xs">Rotation</Label>
-                  <Slider
-                    value={[textStyle.rotation]}
-                    min={0}
-                    max={360}
-                    step={1}
-                    onValueChange={([rotation]) => onTextStyleChange({ ...textStyle, rotation })}
-                    className="py-2"
-                  />
-                </div>
-              </div>
-
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button variant="outline" className="w-full justify-start">
-                    <div className="flex items-center gap-2">
-                      <div 
-                        className="h-4 w-4 rounded-full border"
-                        style={{ backgroundColor: textStyle.color }}
-                      />
-                      <span>Color</span>
-                    </div>
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-64">
-                  <div className="grid gap-4">
-                    <div className="grid grid-cols-3 gap-2">
-                      {['#ffffff', '#000000', '#ff0000', '#00ff00', '#0000ff', '#ffff00'].map((color) => (
-                        <Button
-                          key={color}
-                          variant="outline"
-                          className="w-full h-8 p-0"
-                          style={{ backgroundColor: color }}
-                          onClick={() => onTextStyleChange({ ...textStyle, color })}
-                        />
-                      ))}
-                    </div>
-                    <Input
-                      type="color"
-                      value={textStyle.color}
-                      onChange={(e) => onTextStyleChange({ ...textStyle, color: e.target.value })}
-                    />
-                  </div>
-                </PopoverContent>
-              </Popover>
             </div>
-          </CollapsibleContent>
-        </Collapsible>
-
-        <Collapsible>
-          <CollapsibleTrigger className="flex w-full items-center justify-between rounded-lg bg-muted p-3">
-            <div className="flex items-center gap-2">
-              <Type className="h-4 w-4" />
-              <span className="font-medium">Watermark</span>
+            <div>
+              <Label>Opacity</Label>
+              <Slider
+                value={[textStyle.opacity]}
+                min={0}
+                max={100}
+                step={1}
+                onValueChange={(value) => onTextStyleChange({ ...textStyle, opacity: value[0] })}
+              />
             </div>
-            <ChevronDown className="h-4 w-4" />
-          </CollapsibleTrigger>
-          <CollapsibleContent className="space-y-4 p-3">
-            <div className="flex items-center space-x-2">
-              <Switch
-                checked={textStyle.watermark?.enabled || false}
-                onCheckedChange={(enabled) => onTextStyleChange({
+            <div>
+              <Label>Letter Spacing</Label>
+              <Slider
+                value={[textStyle.letterSpacing]}
+                min={-5}
+                max={20}
+                step={0.5}
+                onValueChange={(value) => onTextStyleChange({ ...textStyle, letterSpacing: value[0] })}
+              />
+            </div>
+          </TabsContent>
+
+          <TabsContent value="transform" className="space-y-4">
+            <div>
+              <Label>Scale X</Label>
+              <Slider
+                value={[textStyle.transform.scale.x]}
+                min={0.1}
+                max={3}
+                step={0.1}
+                onValueChange={(value) => onTextStyleChange({
                   ...textStyle,
-                  watermark: {
-                    enabled,
-                    text: textStyle.watermark?.text || '',
-                    position: textStyle.watermark?.position || 'bottom-right',
-                    fontSize: textStyle.watermark?.fontSize || 24
+                  transform: {
+                    ...textStyle.transform,
+                    scale: { ...textStyle.transform.scale, x: value[0] }
                   }
                 })}
               />
-              <Label>Enable Watermark</Label>
             </div>
-            {textStyle.watermark?.enabled && textStyle.watermark && (
-              <>
-                <Input
-                  value={textStyle.watermark.text}
-                  onChange={(e) => onTextStyleChange({
-                    ...textStyle,
-                    watermark: {
-                      ...textStyle.watermark,
-                      enabled: true,
-                      text: e.target.value,
-                      position: textStyle.watermark.position,
-                      fontSize: textStyle.watermark.fontSize
-                    }
-                  })}
-                  placeholder="Watermark text"
-                />
-                <Select
-                  value={textStyle.watermark.position}
-                  onValueChange={(position) => onTextStyleChange({
-                    ...textStyle,
-                    watermark: {
-                      ...textStyle.watermark,
-                      enabled: true,
-                      position: position as 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right',
-                      text: textStyle.watermark.text,
-                      fontSize: textStyle.watermark.fontSize
-                    }
-                  })}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Position" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {['top-left', 'top-right', 'bottom-left', 'bottom-right'].map(pos => (
-                      <SelectItem key={pos} value={pos}>
-                        {pos.replace('-', ' ').replace(/\b\w/g, l => l.toUpperCase())}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </>
-            )}
-          </CollapsibleContent>
-        </Collapsible>
+            <div>
+              <Label>Scale Y</Label>
+              <Slider
+                value={[textStyle.transform.scale.y]}
+                min={0.1}
+                max={3}
+                step={0.1}
+                onValueChange={(value) => onTextStyleChange({
+                  ...textStyle,
+                  transform: {
+                    ...textStyle.transform,
+                    scale: { ...textStyle.transform.scale, y: value[0] }
+                  }
+                })}
+              />
+            </div>
+            <div>
+              <Label>Rotation</Label>
+              <Slider
+                value={[textStyle.rotation]}
+                min={0}
+                max={360}
+                step={1}
+                onValueChange={(value) => onTextStyleChange({ ...textStyle, rotation: value[0] })}
+              />
+            </div>
+          </TabsContent>
 
-        <Collapsible>
-          <CollapsibleTrigger className="flex w-full items-center justify-between rounded-lg bg-muted p-3">
-            <div className="flex items-center gap-2">
-              <div className="flex items-center space-x-2">
-                <span className="font-medium">AI Enhancements</span>
-                <Crown className="h-4 w-4 text-yellow-500" />
-                <span className="text-xs bg-yellow-100 text-yellow-800 px-2 py-0.5 rounded">Premium</span>
-              </div>
+          <TabsContent value="position" className="space-y-4">
+            <div>
+              <Label>X Position</Label>
+              <Slider
+                value={[textStyle.x]}
+                min={0}
+                max={800}
+                step={1}
+                onValueChange={(value) => onTextStyleChange({ ...textStyle, x: value[0] })}
+              />
             </div>
-            <ChevronDown className="h-4 w-4" />
-          </CollapsibleTrigger>
-          <CollapsibleContent className="space-y-4 p-3">
-            <div className="space-y-4 blur-sm pointer-events-none">
-              <Button className="w-full" variant="outline">
-                <Lock className="mr-2 h-4 w-4" />
-                Smart Text Suggestions
-              </Button>
-              <Button className="w-full" variant="outline">
-                <Lock className="mr-2 h-4 w-4" />
-                Style Templates
-              </Button>
+            <div>
+              <Label>Y Position</Label>
+              <Slider
+                value={[textStyle.y]}
+                min={0}
+                max={600}
+                step={1}
+                onValueChange={(value) => onTextStyleChange({ ...textStyle, y: value[0] })}
+              />
             </div>
-            <Button className="w-full" variant="outline">
-              Upgrade to Premium
-            </Button>
-          </CollapsibleContent>
-        </Collapsible>
+          </TabsContent>
+        </Tabs>
 
-        <Button 
-          onClick={onProcess} 
-          disabled={isProcessing || !image}
-          className="w-full"
-        >
-          {isProcessing ? (
-            <>
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              Processing...
-            </>
-          ) : (
-            'Remove Background'
-          )}
-        </Button>
+        <div className="pt-4 border-t">
+          <Button 
+            className="w-full flex items-center gap-2 py-6 text-lg font-semibold bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 text-white shadow-lg transition-all duration-200 hover:shadow-xl" 
+            variant="default"
+          >
+            <ImageDown className="h-5 w-5" />
+            Process Image
+          </Button>
+        </div>
       </div>
+    )
+  }
+
+  return (
+    <div
+      ref={textRef}
+      className="relative w-full h-full"
+      style={{
+        fontFamily: textStyle.fontFamily,
+        fontSize: `${textStyle.fontSize}px`,
+        color: textStyle.color,
+        transform: `
+          translate(${textStyle.x}px, ${textStyle.y}px)
+          rotate(${textStyle.rotation}deg)
+          scale(${textStyle.transform.scale.x}, ${textStyle.transform.scale.y})
+        `,
+        opacity: textStyle.opacity / 100,
+        letterSpacing: `${textStyle.letterSpacing}px`,
+      }}
+    >
+      {textStyle.text}
     </div>
   )
 }
 
 export default TextEditor
-
