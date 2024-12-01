@@ -26,6 +26,9 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" suppressHydrationWarning>
+      <head>
+        <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+      </head>
       <body className={`${geistSans.variable} ${geistMono.variable} container mx-auto`}>
         <UserProvider>
         <ThemeProvider
