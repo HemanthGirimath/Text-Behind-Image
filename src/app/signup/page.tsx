@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { Input } from '@/components/UI/input'
 import { Label } from '@/components/UI/label'
 import { Button } from '@/components/UI/button'
+import { signUp } from '../actions/auth'
 import {
   Card,
   CardContent,
@@ -13,15 +14,15 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/UI/card'
-import { Mail, Lock, ArrowRight } from 'lucide-react'
+import { Mail, Lock, User, ArrowRight } from 'lucide-react'
 import { useUser } from '@/lib/user-context'
-import { login } from '../actions/auth'
 import { useToast } from "@/components/UI/use-toast"
 
-export default function LoginPage() {
+export default function SignupPage() {
   const router = useRouter()
   const { dispatch } = useUser()
   const { toast } = useToast()
+  const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [isLoading, setIsLoading] = useState(false)
@@ -29,9 +30,9 @@ export default function LoginPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsLoading(true)
-
+  
     try {
-      const result = await login(email, password)
+      const result = await signUp(email, password, name)
       
       if (result.error) {
         toast({
@@ -50,41 +51,45 @@ export default function LoginPage() {
         })
         return
       }
-
-      // Dispatch login action after successful login
-      dispatch({
-        type: 'LOGIN',
-        payload: {
-          email: result.user.email,
-          name: result.user.name,
-          plan: result.user.plan as 'free' | 'pro' | 'enterprise'
-        }
-      })
-      
+  
       toast({
         title: "Success",
-        description: "Successfully logged in!"
+        description: "Account created successfully! Please log in."
       })
-      // After successful login, redirect to profile
-      router.push('/editor')
+      // After successful signup, redirect to login
+      router.push('/login')
     } catch (error) {
-      console.error('Login failed:', error)
+      console.error('Signup failed:', error)
     } finally {
       setIsLoading(false)
     }
   }
-
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-900 to-gray-800 p-4">
       <Card className="w-full max-w-2xl">
         <CardHeader className="space-y-4 p-8">
-          <CardTitle className="text-4xl font-bold text-center">Welcome Back</CardTitle>
+          <CardTitle className="text-4xl font-bold text-center">Create Account</CardTitle>
           <CardDescription className="text-center text-lg">
-            Sign in to your account to continue
+            Sign up for a new account to get started
           </CardDescription>
         </CardHeader>
         <form onSubmit={handleSubmit}>
           <CardContent className="space-y-6 p-8">
+            <div className="space-y-3">
+              <Label htmlFor="name" className="text-lg">Name</Label>
+              <div className="relative">
+                <User className="absolute left-4 top-4 h-5 w-5 text-muted-foreground" />
+                <Input
+                  id="name"
+                  type="text"
+                  placeholder="John Doe"
+                  className="pl-12 h-14 text-lg"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  required
+                />
+              </div>
+            </div>
             <div className="space-y-3">
               <Label htmlFor="email" className="text-lg">Email</Label>
               <div className="relative">
@@ -125,23 +130,23 @@ export default function LoginPage() {
               {isLoading ? (
                 <div className="flex items-center gap-3">
                   <div className="h-5 w-5 animate-spin rounded-full border-2 border-current border-t-transparent" />
-                  Signing in...
+                  Creating account...
                 </div>
               ) : (
                 <div className="flex items-center gap-3">
-                  Sign In
+                  Sign Up
                   <ArrowRight className="h-6 w-6" />
                 </div>
               )}
             </Button>
             <div className="text-center text-base text-muted-foreground">
-              Don't have an account?{' '}
+              Already have an account?{' '}
               <button
                 type="button"
-                onClick={() => router.push('/signup')}
+                onClick={() => router.push('/login')}
                 className="text-primary hover:underline font-medium"
               >
-                Sign up
+                Sign in
               </button>
             </div>
           </CardFooter>

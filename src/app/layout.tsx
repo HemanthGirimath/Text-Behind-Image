@@ -3,6 +3,8 @@ import localFont from "next/font/local";
 import "./globals.css";
 import Navbar from "../components/navbar";
 import { ThemeProvider } from "@/components/theme-provider";
+import { UserProvider } from "@/lib/user-context";
+import { Toaster } from "@/components/UI/toaster";
 
 const geistSans = localFont({
   src: "./fonts/GeistVF.woff",
@@ -25,15 +27,18 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en" suppressHydrationWarning>
       <body className={`${geistSans.variable} ${geistMono.variable} container mx-auto`}>
+        <UserProvider>
         <ThemeProvider
           attribute="class"
           defaultTheme="system"
           enableSystem
           disableTransitionOnChange
-        >
+          >
           <Navbar />
           {children}
         </ThemeProvider>
+          </UserProvider>
+        <Toaster />
       </body>
     </html>
   );

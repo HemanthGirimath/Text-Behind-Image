@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useRef } from 'react'
 import { Input } from '@/components/UI/input'
 import { Label } from '@/components/UI/label'
 import { Slider } from '@/components/UI/slider'
@@ -14,17 +14,9 @@ import {
   SelectValue,
 } from '@/components/UI/select'
 import {
-  Bold,
-  Italic,
-  Underline,
-  AlignLeft,
-  AlignCenter,
-  AlignRight,
   Type,
   Move,
   Palette,
-  Sparkles,
-  Lock,
   Sliders,
   ImageDown
 } from 'lucide-react'
@@ -102,25 +94,18 @@ const TextEditor: React.FC<TextEditorProps> = ({
   onTextStyleChange,
   controlsOnly = false
 }) => {
-  const [activeTab, setActiveTab] = useState('text')
-
-  const updateStyle = (updates: Partial<TextStyle>) => {
-    onTextStyleChange({ ...textStyle, ...updates })
-  }
+  const textRef = useRef<HTMLDivElement>(null)
 
   if (controlsOnly) {
     return (
       <div className="space-y-4">
         <Tabs defaultValue="text" className="w-full">
-          <TabsList className="w-full grid grid-cols-4">
+          <TabsList className="w-full grid grid-cols-3">
             <TabsTrigger value="text">
               <Type className="h-4 w-4" />
             </TabsTrigger>
-            <TabsTrigger value="style">
-              <Palette className="h-4 w-4" />
-            </TabsTrigger>
-            <TabsTrigger value="effects">
-              <Sparkles className="h-4 w-4" />
+            <TabsTrigger value="transform">
+              <Sliders className="h-4 w-4" />
             </TabsTrigger>
             <TabsTrigger value="position">
               <Move className="h-4 w-4" />
@@ -132,76 +117,9 @@ const TextEditor: React.FC<TextEditorProps> = ({
               <Label>Text Content</Label>
               <Input
                 value={textStyle.text}
-                onChange={(e) => updateStyle({ text: e.target.value })}
-                placeholder="Enter your text..."
+                onChange={(e) => onTextStyleChange({ ...textStyle, text: e.target.value })}
               />
             </div>
-
-            <div className="flex gap-2">
-              <Button
-                variant={textStyle.style.bold ? "default" : "outline"}
-                size="icon"
-                onClick={() => updateStyle({ 
-                  style: { 
-                    ...textStyle.style, 
-                    bold: !textStyle.style.bold 
-                  } 
-                })}
-              >
-                <Bold className="h-4 w-4" />
-              </Button>
-              <Button
-                variant={textStyle.style.italic ? "default" : "outline"}
-                size="icon"
-                onClick={() => updateStyle({ 
-                  style: { 
-                    ...textStyle.style, 
-                    italic: !textStyle.style.italic 
-                  } 
-                })}
-              >
-                <Italic className="h-4 w-4" />
-              </Button>
-              <Button
-                variant={textStyle.style.underline ? "default" : "outline"}
-                size="icon"
-                onClick={() => updateStyle({ 
-                  style: { 
-                    ...textStyle.style, 
-                    underline: !textStyle.style.underline 
-                  } 
-                })}
-              >
-                <Underline className="h-4 w-4" />
-              </Button>
-            </div>
-
-            <div className="flex gap-2">
-              <Button
-                variant={textStyle.align === 'left' ? "default" : "outline"}
-                size="icon"
-                onClick={() => updateStyle({ align: 'left' })}
-              >
-                <AlignLeft className="h-4 w-4" />
-              </Button>
-              <Button
-                variant={textStyle.align === 'center' ? "default" : "outline"}
-                size="icon"
-                onClick={() => updateStyle({ align: 'center' })}
-              >
-                <AlignCenter className="h-4 w-4" />
-              </Button>
-              <Button
-                variant={textStyle.align === 'right' ? "default" : "outline"}
-                size="icon"
-                onClick={() => updateStyle({ align: 'right' })}
-              >
-                <AlignRight className="h-4 w-4" />
-              </Button>
-            </div>
-          </TabsContent>
-
-          <TabsContent value="style" className="space-y-4">
             <div>
               <Label>Font Size</Label>
               <Slider
@@ -209,15 +127,22 @@ const TextEditor: React.FC<TextEditorProps> = ({
                 min={12}
                 max={200}
                 step={1}
-                onValueChange={(value) => updateStyle({ fontSize: value[0] })}
+                onValueChange={(value) => onTextStyleChange({ ...textStyle, fontSize: value[0] })}
               />
             </div>
-
+            <div>
+              <Label>Color</Label>
+              <Input
+                type="color"
+                value={textStyle.color}
+                onChange={(e) => onTextStyleChange({ ...textStyle, color: e.target.value })}
+              />
+            </div>
             <div>
               <Label>Font Family</Label>
               <Select
                 value={textStyle.fontFamily}
-                onValueChange={(value) => updateStyle({ fontFamily: value })}
+                onValueChange={(value) => onTextStyleChange({ ...textStyle, fontFamily: value })}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Select font" />
@@ -228,19 +153,16 @@ const TextEditor: React.FC<TextEditorProps> = ({
                   <SelectItem value="Courier New">Courier New</SelectItem>
                   <SelectItem value="Georgia">Georgia</SelectItem>
                   <SelectItem value="Verdana">Verdana</SelectItem>
+                  <SelectItem value="Helvetica">Helvetica</SelectItem>
+                  <SelectItem value="Roboto">Roboto</SelectItem>
+                  <SelectItem value="Open Sans">Open Sans</SelectItem>
+                  <SelectItem value="Lato">Lato</SelectItem>
+                  <SelectItem value="Montserrat">Montserrat</SelectItem>
+                  <SelectItem value="Comic Sans MS">Comic Sans MS</SelectItem>
+                  <SelectItem value="Impact">Impact</SelectItem>
                 </SelectContent>
               </Select>
             </div>
-
-            <div>
-              <Label>Color</Label>
-              <Input
-                type="color"
-                value={textStyle.color}
-                onChange={(e) => updateStyle({ color: e.target.value })}
-              />
-            </div>
-
             <div>
               <Label>Opacity</Label>
               <Slider
@@ -248,34 +170,63 @@ const TextEditor: React.FC<TextEditorProps> = ({
                 min={0}
                 max={100}
                 step={1}
-                onValueChange={(value) => updateStyle({ opacity: value[0] })}
+                onValueChange={(value) => onTextStyleChange({ ...textStyle, opacity: value[0] })}
+              />
+            </div>
+            <div>
+              <Label>Letter Spacing</Label>
+              <Slider
+                value={[textStyle.letterSpacing]}
+                min={-5}
+                max={20}
+                step={0.5}
+                onValueChange={(value) => onTextStyleChange({ ...textStyle, letterSpacing: value[0] })}
               />
             </div>
           </TabsContent>
 
-          <TabsContent value="effects" className="space-y-4">
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <Label>Pro Effects</Label>
-                <Lock className="h-4 w-4 text-muted-foreground" />
-              </div>
-              <div className="space-y-2 opacity-50">
-                <Button variant="outline" className="w-full" disabled>
-                  Shadow Effect
-                </Button>
-                <Button variant="outline" className="w-full" disabled>
-                  Glow Effect
-                </Button>
-                <Button variant="outline" className="w-full" disabled>
-                  Gradient Text
-                </Button>
-                <Button variant="outline" className="w-full" disabled>
-                  Text Outline
-                </Button>
-              </div>
-              <div className="text-sm text-muted-foreground text-center">
-                Upgrade to Pro to unlock advanced text effects
-              </div>
+          <TabsContent value="transform" className="space-y-4">
+            <div>
+              <Label>Scale X</Label>
+              <Slider
+                value={[textStyle.transform.scale.x]}
+                min={0.1}
+                max={3}
+                step={0.1}
+                onValueChange={(value) => onTextStyleChange({
+                  ...textStyle,
+                  transform: {
+                    ...textStyle.transform,
+                    scale: { ...textStyle.transform.scale, x: value[0] }
+                  }
+                })}
+              />
+            </div>
+            <div>
+              <Label>Scale Y</Label>
+              <Slider
+                value={[textStyle.transform.scale.y]}
+                min={0.1}
+                max={3}
+                step={0.1}
+                onValueChange={(value) => onTextStyleChange({
+                  ...textStyle,
+                  transform: {
+                    ...textStyle.transform,
+                    scale: { ...textStyle.transform.scale, y: value[0] }
+                  }
+                })}
+              />
+            </div>
+            <div>
+              <Label>Rotation</Label>
+              <Slider
+                value={[textStyle.rotation]}
+                min={0}
+                max={360}
+                step={1}
+                onValueChange={(value) => onTextStyleChange({ ...textStyle, rotation: value[0] })}
+              />
             </div>
           </TabsContent>
 
@@ -287,10 +238,9 @@ const TextEditor: React.FC<TextEditorProps> = ({
                 min={0}
                 max={800}
                 step={1}
-                onValueChange={(value) => updateStyle({ x: value[0] })}
+                onValueChange={(value) => onTextStyleChange({ ...textStyle, x: value[0] })}
               />
             </div>
-
             <div>
               <Label>Y Position</Label>
               <Slider
@@ -298,39 +248,40 @@ const TextEditor: React.FC<TextEditorProps> = ({
                 min={0}
                 max={600}
                 step={1}
-                onValueChange={(value) => updateStyle({ y: value[0] })}
-              />
-            </div>
-
-            <div>
-              <Label>Rotation</Label>
-              <Slider
-                value={[textStyle.rotation]}
-                min={0}
-                max={360}
-                step={1}
-                onValueChange={(value) => updateStyle({ rotation: value[0] })}
+                onValueChange={(value) => onTextStyleChange({ ...textStyle, y: value[0] })}
               />
             </div>
           </TabsContent>
         </Tabs>
+
+        <div className="pt-4 border-t">
+          <Button 
+            className="w-full flex items-center gap-2 py-6 text-lg font-semibold bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 text-white shadow-lg transition-all duration-200 hover:shadow-xl" 
+            variant="default"
+          >
+            <ImageDown className="h-5 w-5" />
+            Process Image
+          </Button>
+        </div>
       </div>
     )
   }
 
   return (
     <div
+      ref={textRef}
       className="relative w-full h-full"
       style={{
         fontFamily: textStyle.fontFamily,
         fontSize: `${textStyle.fontSize}px`,
         color: textStyle.color,
-        transform: `translate(${textStyle.x}px, ${textStyle.y}px) rotate(${textStyle.rotation}deg)`,
+        transform: `
+          translate(${textStyle.x}px, ${textStyle.y}px)
+          rotate(${textStyle.rotation}deg)
+          scale(${textStyle.transform.scale.x}, ${textStyle.transform.scale.y})
+        `,
         opacity: textStyle.opacity / 100,
-        fontWeight: textStyle.style.bold ? 'bold' : 'normal',
-        fontStyle: textStyle.style.italic ? 'italic' : 'normal',
-        textDecoration: textStyle.style.underline ? 'underline' : 'none',
-        textAlign: textStyle.align,
+        letterSpacing: `${textStyle.letterSpacing}px`,
       }}
     >
       {textStyle.text}
