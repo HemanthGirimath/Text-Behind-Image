@@ -5,7 +5,7 @@ import Navbar from "../components/navbar";
 import { ThemeProvider } from "@/components/theme-provider";
 import { UserProvider } from "@/lib/user-context";
 import { Toaster } from "@/components/UI/toaster";
-
+import { SpeedInsights } from '@vercel/speed-insights/next';
 const geistSans = localFont({
   src: "./fonts/GeistVF.woff",
   variable: "--font-geist-sans",
@@ -39,6 +39,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           >
           <Navbar />
           {children}
+          <SpeedInsights />
         </ThemeProvider>
           </UserProvider>
         <Toaster />
