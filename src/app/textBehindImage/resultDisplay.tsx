@@ -114,42 +114,30 @@ export function ResultDisplay({
     drawImages()
   }, [originalImage, processedImage, textStyle, imageAdjustments])
 
-  
-
   useEffect(() => {
     const canvas = canvasRef.current
     if (!canvas) return
 
-    const handleMouseDown = (e: MouseEvent) => {
+    const getCanvasCoordinates = (clientX: number, clientY: number) => {
       const rect = canvas.getBoundingClientRect()
       const scaleX = canvas.width / rect.width
       const scaleY = canvas.height / rect.height
       
-      const x = (e.clientX - rect.left) * scaleX
-      const y = (e.clientY - rect.top) * scaleY
-      
-      // Convert percentage position to actual pixels
-      const textX = (textStyle.x / 100) * canvas.width
-      const textY = (textStyle.y / 100) * canvas.height
-      
-      // Create a larger hit area around the text
-      const hitArea = textStyle.fontSize * 2
-      if (Math.abs(x - textX) < hitArea && Math.abs(y - textY) < hitArea) {
-        isDraggingRef.current = true
-        setMousePos({ x: e.clientX - rect.left, y: e.clientY - rect.top })
-      }
+      const x = (clientX - rect.left) * scaleX
+      const y = (clientY - rect.top) * scaleY
+
+      return { x, y, rect, scaleX, scaleY }
     }
 
-    const handleMouseMove = (e: MouseEvent) => {
-      if (!isDraggingRef.current) return
-      
-      const rect = canvas.getBoundingClientRect()
-      const scaleX = canvas.width / rect.width
-      const scaleY = canvas.height / rect.height
-      
-      // Calculate new position in canvas coordinates
-      const x = (e.clientX - rect.left) * scaleX
-      const y = (e.clientY - rect.top) * scaleY
+    const isWithinTextBounds = (x: number, y: number) => {
+      const textX = (textStyle.x / 100) * canvas.width
+      const textY = (textStyle.y / 100) * canvas.height
+      const hitArea = textStyle.fontSize * 2
+      return Math.abs(x - textX) < hitArea && Math.abs(y - textY) < hitArea
+    }
+
+    const updateTextPosition = (clientX: number, clientY: number) => {
+      const { x, y, rect } = getCanvasCoordinates(clientX, clientY)
       
       // Convert to percentage
       const newX = Math.max(0, Math.min(100, (x / canvas.width) * 100))
@@ -160,26 +148,69 @@ export function ResultDisplay({
         x: newX,
         y: newY
       })
+
+      setMousePos({ x: clientX - rect.left, y: clientY - rect.top })
     }
 
-    const handleMouseUp = () => {
+    // Mouse event handlers
+    const handleMouseDown = (e: MouseEvent) => {
+      const { x, y } = getCanvasCoordinates(e.clientX, e.clientY)
+      if (isWithinTextBounds(x, y)) {
+        isDraggingRef.current = true
+        updateTextPosition(e.clientX, e.clientY)
+      }
+    }
+
+    const handleMouseMove = (e: MouseEvent) => {
+      if (!isDraggingRef.current) return
+      updateTextPosition(e.clientX, e.clientY)
+    }
+
+    // Touch event handlers
+    const handleTouchStart = (e: TouchEvent) => {
+      e.preventDefault() // Prevent scrolling while dragging
+      const touch = e.touches[0]
+      const { x, y } = getCanvasCoordinates(touch.clientX, touch.clientY)
+      if (isWithinTextBounds(x, y)) {
+        isDraggingRef.current = true
+        updateTextPosition(touch.clientX, touch.clientY)
+      }
+    }
+
+    const handleTouchMove = (e: TouchEvent) => {
+      if (!isDraggingRef.current) return
+      e.preventDefault() // Prevent scrolling while dragging
+      const touch = e.touches[0]
+      updateTextPosition(touch.clientX, touch.clientY)
+    }
+
+    const handleEnd = () => {
       isDraggingRef.current = false
     }
 
-    const handleMouseLeave = () => {
-      isDraggingRef.current = false
-    }
-
+    // Add event listeners
     canvas.addEventListener('mousedown', handleMouseDown)
     window.addEventListener('mousemove', handleMouseMove)
-    window.addEventListener('mouseup', handleMouseUp)
-    canvas.addEventListener('mouseleave', handleMouseLeave)
+    window.addEventListener('mouseup', handleEnd)
+    canvas.addEventListener('mouseleave', handleEnd)
+
+    // Touch events
+    canvas.addEventListener('touchstart', handleTouchStart, { passive: false })
+    window.addEventListener('touchmove', handleTouchMove, { passive: false })
+    window.addEventListener('touchend', handleEnd)
+    canvas.addEventListener('touchcancel', handleEnd)
 
     return () => {
+      // Remove event listeners
       canvas.removeEventListener('mousedown', handleMouseDown)
       window.removeEventListener('mousemove', handleMouseMove)
-      window.removeEventListener('mouseup', handleMouseUp)
-      canvas.removeEventListener('mouseleave', handleMouseLeave)
+      window.removeEventListener('mouseup', handleEnd)
+      canvas.removeEventListener('mouseleave', handleEnd)
+
+      canvas.removeEventListener('touchstart', handleTouchStart)
+      window.removeEventListener('touchmove', handleTouchMove)
+      window.removeEventListener('touchend', handleEnd)
+      canvas.removeEventListener('touchcancel', handleEnd)
     }
   }, [textStyle, onTextStyleChange])
 
