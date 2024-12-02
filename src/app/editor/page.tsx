@@ -162,7 +162,7 @@ export default function EditorPage() {
   return (
     <main className="h-screen overflow-hidden relative">
       <div className="flex items-center justify-between p-4">
-        <h1 className="text-3xl font-bold">Text Behind Image</h1>
+        <h1 className="text-2xl md:text-3xl font-bold">Text Behind Image</h1>
         <Button
           ref={buttonRef}
           variant="ghost"
@@ -173,47 +173,52 @@ export default function EditorPage() {
           {isSidebarOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
         </Button>
       </div>
-      <div className="flex h-[calc(100vh-5rem)]">
-        <div className="flex-1 p-4 overflow-y-auto">
+      <div className="flex flex-col lg:flex-row h-[calc(100vh-5rem)]">
+        <div className="flex-1 p-2 md:p-4 overflow-y-auto">
           {!image ? (
             <ImageUploader onImageSelected={handleImageSelect} />
           ) : (
-            <div className="relative w-[800px] h-[600px] mx-auto rounded-lg overflow-hidden">
-              <ResultDisplay 
-                originalImage={image}
-                processedImage={processedImage}
-                textStyle={textStyle}
-                imageAdjustments={imageAdjustments}
-                onTextStyleChange={setTextStyle}
-              />
-              {isProcessing && (
-                <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
-                  <Loader2 className="h-8 w-8 animate-spin text-white" />
+            <div className="space-y-4">
+              <div className="relative w-full max-w-[800px] h-auto aspect-[4/3] mx-auto rounded-lg overflow-hidden">
+                <ResultDisplay 
+                  originalImage={image}
+                  processedImage={processedImage}
+                  textStyle={textStyle}
+                  imageAdjustments={imageAdjustments}
+                  onTextStyleChange={setTextStyle}
+                />
+                {isProcessing && (
+                  <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
+                    <Loader2 className="h-8 w-8 animate-spin text-white" />
+                  </div>
+                )}
+                <div className="absolute top-2 md:top-4 right-2 md:right-4 flex gap-1 md:gap-2">
+                  <Button
+                    variant="secondary"
+                    size="icon"
+                    className="h-8 w-8 md:h-10 md:w-10"
+                    onClick={handleBackgroundRemoval}
+                    disabled={isProcessing}
+                  >
+                    <Settings2 className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    variant="secondary"
+                    size="icon"
+                    className="h-8 w-8 md:h-10 md:w-10"
+                    onClick={handleDownload}
+                  >
+                    <Download className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    variant="destructive"
+                    size="icon"
+                    className="h-8 w-8 md:h-10 md:w-10"
+                    onClick={handleDeleteImage}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
                 </div>
-              )}
-              <div className="absolute top-4 right-4 flex gap-2">
-                <Button
-                  variant="secondary"
-                  size="icon"
-                  onClick={handleBackgroundRemoval}
-                  disabled={isProcessing}
-                >
-                  <Settings2 className="h-4 w-4" />
-                </Button>
-                <Button
-                  variant="secondary"
-                  size="icon"
-                  onClick={handleDownload}
-                >
-                  <Download className="h-4 w-4" />
-                </Button>
-                <Button
-                  variant="destructive"
-                  size="icon"
-                  onClick={handleDeleteImage}
-                >
-                  <Trash2 className="h-4 w-4" />
-                </Button>
               </div>
             </div>
           )}
@@ -222,22 +227,77 @@ export default function EditorPage() {
               <AlertDescription>{error}</AlertDescription>
             </Alert>
           )}
+
+          {/* Mobile Editor */}
+          <div className="lg:hidden mt-4">
+            <Tabs defaultValue="text" className="w-full">
+              <TabsList className="w-full grid grid-cols-3 p-1">
+                <TabsTrigger value="text" className="py-3">Text</TabsTrigger>
+                <TabsTrigger value="image" className="py-3">Image</TabsTrigger>
+                <TabsTrigger value="ai" className="py-3">AI</TabsTrigger>
+              </TabsList>
+
+              <TabsContent value="text">
+                <TextEditor 
+                  textStyle={textStyle}
+                  onTextStyleChange={setTextStyle}
+                  controlsOnly={true}
+                  onProcessImage={handleBackgroundRemoval}
+                />
+              </TabsContent>
+
+              <TabsContent value="image">
+                <ImageAdjuster
+                  adjustments={imageAdjustments}
+                  onAdjustmentsChange={setImageAdjustments}
+                />
+              </TabsContent>
+
+              <TabsContent value="ai" className="space-y-4">
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-lg font-medium">AI Features</h3>
+                    <Lock className="h-4 w-4 text-muted-foreground" />
+                  </div>
+                  <div className="space-y-2 opacity-50">
+                    <Button variant="outline" className="w-full" disabled>
+                      <Wand2 className="h-4 w-4 mr-2" />
+                      Generate Text Styles
+                    </Button>
+                    <Button variant="outline" className="w-full" disabled>
+                      <Wand2 className="h-4 w-4 mr-2" />
+                      Smart Image Enhancement
+                    </Button>
+                    <Button variant="outline" className="w-full" disabled>
+                      <Wand2 className="h-4 w-4 mr-2" />
+                      AI Background Removal
+                    </Button>
+                  </div>
+                  <div className="text-sm text-muted-foreground text-center">
+                    Upgrade to Pro to unlock AI-powered features
+                  </div>
+                </div>
+              </TabsContent>
+            </Tabs>
+          </div>
         </div>
+        
+        {/* Desktop Sidebar */}
         <div 
           ref={sidebarRef}
           className={`
-            fixed lg:relative top-0 right-0 h-full w-[300px] 
-            bg-background/90 backdrop-blur-sm border-l p-4 
+            fixed lg:relative top-0 right-0 h-full w-[85vw] md:w-[300px]
+            bg-background/95 backdrop-blur-sm border-l p-4 
             overflow-y-auto transition-transform duration-300 ease-in-out
             ${isSidebarOpen ? 'translate-x-0' : 'translate-x-full lg:translate-x-0'}
-            z-50
+            z-50 shadow-lg lg:shadow-none
           `}
         >
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-            <TabsList className="w-full grid grid-cols-3">
-              <TabsTrigger value="text">Text</TabsTrigger>
-              <TabsTrigger value="image">Image</TabsTrigger>
-              <TabsTrigger value="ai">AI</TabsTrigger>
+            <TabsList className="w-full grid grid-cols-3 p-1">
+              <TabsTrigger value="text" className="py-3">Text</TabsTrigger>
+              <TabsTrigger value="image" className="py-3">Image</TabsTrigger>
+              <TabsTrigger value="ai" className="py-3">AI</TabsTrigger>
             </TabsList>
 
             <TabsContent value="text">

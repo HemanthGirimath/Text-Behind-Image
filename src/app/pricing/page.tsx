@@ -115,26 +115,26 @@ export default function PricingPage() {
   };
 
   return (
-    <div className="container py-20">
-      <div className="text-center mb-16">
-        <h1 className="text-4xl font-bold mb-4">Simple, transparent pricing</h1>
-        <p className="text-xl text-muted-foreground">
+    <div className="container py-8 md:py-20 px-4 md:px-6">
+      <div className="text-center mb-8 md:mb-16">
+        <h1 className="text-3xl md:text-4xl font-bold mb-2 md:mb-4">Simple, transparent pricing</h1>
+        <p className="text-lg md:text-xl text-muted-foreground">
           Choose the plan that best suits your reading needs
         </p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-6xl mx-auto">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-8 max-w-6xl mx-auto">
         {/* Free Tier */}
-        <div className="relative rounded-2xl bg-background p-8 shadow-lg border border-border hover:shadow-xl transition-shadow">
-          <div className="mb-8">
-            <h3 className="text-2xl font-bold mb-2">Free</h3>
-            <p className="text-muted-foreground">Perfect for getting started</p>
+        <div className="relative rounded-2xl bg-background p-6 md:p-8 shadow-lg border border-border hover:shadow-xl transition-shadow">
+          <div className="mb-6 md:mb-8">
+            <h3 className="text-xl md:text-2xl font-bold mb-2">Free</h3>
+            <p className="text-sm md:text-base text-muted-foreground">Perfect for getting started</p>
             <div className="mt-4 flex items-baseline">
-              <span className="text-4xl font-bold">₹0</span>
+              <span className="text-3xl md:text-4xl font-bold">₹0</span>
               <span className="text-muted-foreground ml-2">/month</span>
             </div>
           </div>
-          <ul className="space-y-4 mb-8">
+          <ul className="space-y-3 md:space-y-4 mb-6 md:mb-8">
             <Feature available>Access to free manga</Feature>
             <Feature available>Basic reading features</Feature>
             <Feature available>Standard quality</Feature>
@@ -144,29 +144,29 @@ export default function PricingPage() {
           </ul>
           <Link 
             href="/manga" 
-            className="block w-full py-3 px-6 rounded-lg text-center bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
+            className="block w-full py-4 md:py-3 px-6 rounded-lg text-center text-base md:text-sm bg-primary text-primary-foreground hover:bg-primary/90 transition-colors touch-manipulation"
           >
             Get Started
           </Link>
         </div>
 
         {/* Pro Tier */}
-        <div className="relative rounded-2xl bg-background p-8 shadow-lg border border-border hover:shadow-xl transition-shadow">
-          <div className="absolute -top-5 right-8">
+        <div className="relative rounded-2xl bg-background p-6 md:p-8 shadow-lg border border-border hover:shadow-xl transition-shadow">
+          <div className="absolute -top-3 md:-top-5 right-4 md:right-8">
             <span className="bg-primary px-3 py-1 text-sm rounded-full text-primary-foreground">
               Popular
             </span>
           </div>
-          <div className="mb-8">
-            <h3 className="text-2xl font-bold mb-2">Pro</h3>
-            <p className="text-muted-foreground">Perfect for manga enthusiasts</p>
+          <div className="mb-6 md:mb-8">
+            <h3 className="text-xl md:text-2xl font-bold mb-2">Pro</h3>
+            <p className="text-sm md:text-base text-muted-foreground">Perfect for manga enthusiasts</p>
             <div className="mt-4 flex items-baseline">
-              <span className="text-4xl font-bold">₹299</span>
+              <span className="text-3xl md:text-4xl font-bold">₹299</span>
               <span className="text-muted-foreground ml-2">/month</span>
             </div>
             <p className="text-sm text-muted-foreground mt-2">Billed monthly</p>
           </div>
-          <ul className="space-y-4 mb-8">
+          <ul className="space-y-3 md:space-y-4 mb-6 md:mb-8">
             <Feature available>Everything in Free</Feature>
             <Feature available>Ad-free experience</Feature>
             <Feature available>HD quality</Feature>
@@ -177,7 +177,7 @@ export default function PricingPage() {
           <button 
             onClick={() => handlePayment('pro')}
             disabled={isLoading === 'pro'}
-            className={`block w-full py-3 px-6 rounded-lg text-center bg-primary text-primary-foreground hover:bg-primary/90 transition-colors ${
+            className={`block w-full py-4 md:py-3 px-6 rounded-lg text-center text-base md:text-sm bg-primary text-primary-foreground hover:bg-primary/90 transition-colors touch-manipulation ${
               isLoading === 'pro' ? 'opacity-50 cursor-not-allowed' : ''
             }`}
           >
@@ -186,24 +186,24 @@ export default function PricingPage() {
         </div>
 
         {/* Enterprise Tier */}
-        <div className="relative rounded-2xl bg-background p-8 shadow-lg border border-border hover:shadow-xl transition-shadow">
-          <div className="absolute -top-5 right-8">
+        <div className="relative rounded-2xl bg-background p-6 md:p-8 shadow-lg border border-border hover:shadow-xl transition-shadow">
+          <div className="absolute -top-3 md:-top-5 right-4 md:right-8">
             <span className="bg-secondary px-3 py-1 text-sm rounded-full">
               Best Value
             </span>
           </div>
-          <div className="mb-8">
-            <h3 className="text-2xl font-bold mb-2">Enterprise</h3>
-            <p className="text-muted-foreground">For the ultimate experience</p>
+          <div className="mb-6 md:mb-8">
+            <h3 className="text-xl md:text-2xl font-bold mb-2">Enterprise</h3>
+            <p className="text-sm md:text-base text-muted-foreground">For the ultimate experience</p>
             <div className="mt-4 flex items-baseline">
-              <span className="text-4xl font-bold">₹499</span>
+              <span className="text-3xl md:text-4xl font-bold">₹499</span>
               <span className="text-muted-foreground ml-2">/month</span>
             </div>
             <p className="text-sm text-muted-foreground mt-2">
               Save 20% with annual billing
             </p>
           </div>
-          <ul className="space-y-4 mb-8">
+          <ul className="space-y-3 md:space-y-4 mb-6 md:mb-8">
             <Feature available>Everything in Pro</Feature>
             <Feature available>Early access to new manga</Feature>
             <Feature available>Custom reading lists</Feature>
@@ -214,7 +214,7 @@ export default function PricingPage() {
           <button
             onClick={() => handlePayment('enterprise')}
             disabled={isLoading === 'enterprise'}
-            className={`block w-full py-3 px-6 rounded-lg text-center bg-primary text-primary-foreground hover:bg-primary/90 transition-colors ${
+            className={`block w-full py-4 md:py-3 px-6 rounded-lg text-center text-base md:text-sm bg-primary text-primary-foreground hover:bg-primary/90 transition-colors touch-manipulation ${
               isLoading === 'enterprise' ? 'opacity-50 cursor-not-allowed' : ''
             }`}
           >
