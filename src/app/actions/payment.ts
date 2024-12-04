@@ -15,10 +15,11 @@ interface OrderResponse {
   amount: number;
   currency: string;
   keyId: string;
+  url: string;
 }
 
-export async function createOrder(planType: 'pro' | 'enterprise'): Promise<OrderResponse> {
-  const amount = planType === 'pro' ? 299 : 499; // Amount in INR
+export async function createOrder(planType: 'basic' | 'premium'): Promise<OrderResponse> {
+  const amount = planType === 'basic' ? 900 : 1900; // Amount in cents ($9 or $19)
 
   try {
     const order = await razorpay.orders.create({
@@ -33,6 +34,7 @@ export async function createOrder(planType: 'pro' | 'enterprise'): Promise<Order
       amount: order.amount,
       currency: order.currency,
       keyId: process.env.RAZORPAY_KEY_ID!,
+      url: `/api/checkout?plan=${planType}` // Added url for redirect
     };
   } catch (error) {
     console.error('Error creating Razorpay order:', error);
@@ -61,7 +63,7 @@ export async function verifyPayment(
     try {
       // Get order details to know which plan was purchased
       const order = await razorpay.orders.fetch(orderId);
-      const planType = order.amount === 29900 ? 'pro' : 'enterprise';
+      const planType = order.amount === 90000 ? 'basic' : 'premium';
       
       // Update user plan in database
       await prisma.user.update({
