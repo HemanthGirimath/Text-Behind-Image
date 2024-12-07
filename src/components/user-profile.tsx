@@ -17,6 +17,15 @@ export function UserProfile() {
     return null
   }
 
+  const formatDate = (date: Date | null) => {
+    if (!date) return 'N/A'
+    return new Date(date).toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
+    })
+  }
+
   return (
     <Card className="w-full max-w-md mx-auto mt-8">
       <CardHeader className="space-y-4">
@@ -32,10 +41,22 @@ export function UserProfile() {
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="bg-muted p-4 rounded-lg">
-          <h3 className="text-lg font-semibold mb-2">Current Plan</h3>
-          <div className="flex items-center justify-between">
-            <span className="text-muted-foreground">Subscription Type</span>
-            <span className="font-medium capitalize">{state.user.plan}</span>
+          <h3 className="text-lg font-semibold mb-4">Subscription Details</h3>
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <span className="text-muted-foreground">Plan Type</span>
+              <span className="font-medium capitalize">{state.user.plan}</span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-muted-foreground">Valid Until</span>
+              <span className="font-medium">{formatDate(state.user.subscriptionEndDate)}</span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-muted-foreground">Status</span>
+              <span className={`font-medium ${state.user.subscriptionEndDate && new Date(state.user.subscriptionEndDate) > new Date() ? 'text-green-600' : 'text-yellow-600'}`}>
+                {state.user.subscriptionEndDate && new Date(state.user.subscriptionEndDate) > new Date() ? 'Active' : 'Expired'}
+              </span>
+            </div>
           </div>
         </div>
       </CardContent>

@@ -1,10 +1,13 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { createOrder } from '../actions/payment';
 import { useToast } from '@/components/UI/use-toast';
 import { useUser } from '@/lib/user-context';
+import { UserPlan } from '@/lib/utils';
+import { updateUserPlan } from '../actions/subscription';
 
 interface FeatureProps {
   children: React.ReactNode;
@@ -31,32 +34,90 @@ function Feature({ children, available }: FeatureProps) {
 
 export default function PricingPage() {
   const { toast } = useToast();
-  const { state } = useUser();
+  const { state, dispatch } = useUser();
+  const router = useRouter();
   const [loading, setLoading] = useState(false);
 
-  const handleSubscribe = async (plan: 'basic' | 'premium') => {
-    if (!state?.user?.email) {
+  const handlePayment = async (selectedPlan: UserPlan, price: number) => {
+    if (!state.isAuthenticated) {
       toast({
         title: "Login Required",
-        description: "Please login to subscribe to a plan",
+        description: "Please login to subscribe to a plan.",
         variant: "destructive",
       });
+      router.push('/login');
       return;
     }
 
-    setLoading(true);
     try {
-      const order = await createOrder(plan);
-      if (order.url) {
-        window.location.href = order.url;
-      }
+      setLoading(true);
+
+      const options = {
+        key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID,
+        amount: price * 100,
+        currency: "INR",
+        name: "TextBehindImage",
+        description: `${selectedPlan} Plan Subscription`,
+        prefill: {
+          email: state.user?.email,
+          name: state.user?.name,
+        },
+        theme: {
+          color: "#0066FF",
+        },
+        modal: {
+          ondismiss: function() {
+            setLoading(false);
+          }
+        },
+        handler: async function(response: any) {
+          try {
+            if (response.razorpay_payment_id) {
+              const result = await updateUserPlan(selectedPlan);
+
+              if (result.success) {
+                // Ensure the plan is of type UserPlan
+                const updatedPlan = result.user.plan as UserPlan;
+                
+                dispatch({
+                  type: 'LOGIN',
+                  payload: {
+                    ...state.user!,
+                    plan: updatedPlan,
+                    subscriptionEndDate: result.user.subscriptionEndDate
+                  }
+                });
+
+                toast({
+                  title: "Success!",
+                  description: `Your subscription has been updated to ${selectedPlan} plan.`,
+                });
+
+                router.push('/profile');
+              }
+            }
+          } catch (error) {
+            console.error('Error updating subscription:', error);
+            toast({
+              title: "Update Failed",
+              description: "Failed to update subscription. Please contact support.",
+              variant: "destructive",
+            });
+          } finally {
+            setLoading(false);
+          }
+        }
+      };
+
+      const razorpay = new (window as any).Razorpay(options);
+      razorpay.open();
     } catch (error) {
+      console.error('Error initiating payment:', error);
       toast({
         title: "Error",
-        description: "Failed to create subscription",
+        description: "Failed to initiate payment. Please try again.",
         variant: "destructive",
       });
-    } finally {
       setLoading(false);
     }
   };
@@ -113,7 +174,7 @@ export default function PricingPage() {
             </ul>
           </div>
           <button
-            onClick={() => handleSubscribe('basic')}
+            onClick={() => handlePayment('basic', 9)}
             disabled={loading}
             className="mt-8 block w-full rounded-md bg-primary px-3 py-2 text-center text-sm font-semibold text-primary-foreground shadow-sm hover:bg-primary/90 disabled:opacity-50"
           >
@@ -138,13 +199,16 @@ export default function PricingPage() {
             </ul>
           </div>
           <button
-            onClick={() => handleSubscribe('premium')}
+            onClick={() => handlePayment('premium', 19)}
             disabled={loading}
             className="mt-8 block w-full rounded-md bg-primary px-3 py-2 text-center text-sm font-semibold text-primary-foreground shadow-sm hover:bg-primary/90 disabled:opacity-50"
           >
             {loading ? 'Processing...' : 'Subscribe to Premium'}
           </button>
         </div>
+      </div>
+      <div className="mt-8 text-center text-sm text-muted-foreground">
+        <p>Test Mode: Use card number 4111 1111 1111 1111, any future expiry date, and any CVV</p>
       </div>
     </div>
   );

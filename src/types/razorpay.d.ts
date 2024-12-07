@@ -25,36 +25,36 @@ declare module 'razorpay' {
   }
 }
 
-declare namespace Razorpay {
-  interface RazorpayOptions {
-    key: string;
-    amount: number;
-    currency: string;
-    name: string;
-    description?: string;
-    order_id: string;
-    handler: (response: RazorpayResponse) => void;
-    prefill?: {
-      name?: string;
-      email?: string;
-      contact?: string;
-    };
-    theme?: {
-      color?: string;
-    };
-  }
-
-  interface RazorpayResponse {
-    razorpay_payment_id: string;
-    razorpay_order_id: string;
-    razorpay_signature: string;
-  }
+interface RazorpayResponse {
+  razorpay_payment_id: string;
+  razorpay_order_id: string;
+  razorpay_signature: string;
 }
 
-interface Window {
-  Razorpay: {
-    new(options: Razorpay.RazorpayOptions): {
-      open(): void;
-    };
+interface RazorpayOptions {
+  key: string;
+  amount: number;
+  currency: string;
+  name: string;
+  description: string;
+  order_id: string;
+  handler: (response: RazorpayResponse) => void;
+  prefill?: {
+    name?: string;
+    email?: string;
+  };
+  theme?: {
+    color: string;
   };
 }
+
+declare global {
+  interface Window {
+    Razorpay: {
+      (options: RazorpayOptions): { open(): void };
+      new (options: RazorpayOptions): { open(): void };
+    };
+  }
+}
+
+export type { RazorpayResponse, RazorpayOptions };

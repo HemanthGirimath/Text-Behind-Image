@@ -2,32 +2,46 @@
 
 import { createContext, useContext, useReducer, ReactNode } from 'react';
 import { UserState, UserPlan } from './utils';
+import { Session } from 'next-auth';
+
+interface UserPayload {
+  email: string;
+  name: string | null;
+  plan: UserPlan;
+  subscriptionEndDate: Date | null;
+}
 
 const initialState: UserState = {
   isAuthenticated: false,
-  user: null
+  user: {
+    email: '',
+    name: null,
+    plan: 'free' as UserPlan,
+    subscriptionEndDate: null,
+  }
 };
 
 type UserAction = 
-  | { type: 'LOGIN'; payload: { email: string; name: string; plan: UserPlan } }
+  | { type: 'LOGIN'; payload: UserPayload }
   | { type: 'LOGOUT' };
 
 function userReducer(state: UserState, action: UserAction): UserState {
-  switch (action.type) {
-    case 'LOGIN':
-      return {
-        isAuthenticated: true,
-        user: {
-          email: action.payload.email,
-          name: action.payload.name,
-          plan: action.payload.plan
-        }
-      };
-    case 'LOGOUT':
-      return initialState;
-    default:
-      return state;
-  }
+    switch (action.type) {
+        case 'LOGIN':
+            return {
+                ...state,
+                isAuthenticated: true,
+                user: action.payload,
+            };
+        case 'LOGOUT':
+            return {
+                ...state,
+                isAuthenticated: false,
+                user: null,
+            };
+        default:
+            return state;
+    }
 }
 
 const UserContext = createContext<{
