@@ -50,7 +50,7 @@ export default function PricingPage() {
     <div className="container py-10">
       <div className="text-center mb-10">
         <h1 className="text-4xl font-bold mb-4">Simple, Transparent Pricing</h1>
-        <p className="text-xl text-muted-foreground">Choose the plan that's right for you</p>
+        <p className="text-xl text-muted-foreground">Choose the plan that&apos;s right for you</p>
       </div>
 
       <div className="grid md:grid-cols-3 gap-6 max-w-5xl mx-auto">

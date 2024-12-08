@@ -1,3 +1,4 @@
 declare module 'fabric' {
-  export const fabric: any;
+  import { fabric as FabricJS } from 'fabric/fabric-impl';
+  export const fabric: typeof FabricJS;
 }

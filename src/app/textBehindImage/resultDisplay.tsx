@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect } from 'react'
 import { TextStyle } from '@/lib/plans'
 import { ImageAdjustments } from './imageAdjustments'
+import Image from 'next/image'
 
 interface ResultDisplayProps {
   originalImage: string;
@@ -111,11 +112,13 @@ export function ResultDisplay({
     >
       {/* Layer 1: Original image (base) */}
       <div className="absolute inset-0" style={{ zIndex: 1 }}>
-        <img
+        <Image
           src={originalImage}
           alt="Original"
-          className="w-full h-full object-contain"
+          fill
+          className="object-contain"
           style={{ filter: generateFilterString(imageAdjustments) }}
+          unoptimized
         />
       </div>
 
@@ -160,14 +163,15 @@ export function ResultDisplay({
         </div>
       ))}
 
-      {/* Layer 3: Processed image (with transparency) */}
+      {/* Layer 3: Processed image (top) */}
       {processedImage && (
         <div className="absolute inset-0" style={{ zIndex: 3 }}>
-          <img
+          <Image
             src={processedImage}
             alt="Processed"
-            className="w-full h-full object-contain"
-            style={{ filter: generateFilterString(imageAdjustments) }}
+            fill
+            className="object-contain"
+            unoptimized
           />
         </div>
       )}
