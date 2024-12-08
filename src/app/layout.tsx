@@ -2,10 +2,10 @@ import type { Metadata } from "next";
 import localFont from "next/font/local";
 import "./globals.css";
 import Navbar from "../components/navbar";
-import { ThemeProvider } from "@/components/theme-provider";
-import { UserProvider } from "@/lib/user-context";
 import { Toaster } from "@/components/UI/toaster";
 import { SpeedInsights } from '@vercel/speed-insights/next';
+import { Providers } from "@/components/providers";
+
 const geistSans = localFont({
   src: "./fonts/GeistVF.woff",
   variable: "--font-geist-sans",
@@ -30,18 +30,11 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
       </head>
       <body className={`${geistSans.variable} ${geistMono.variable} container mx-auto`}>
-        <UserProvider>
-        <ThemeProvider
-          attribute="class"
-          defaultTheme="system"
-          enableSystem
-          disableTransitionOnChange
-          >
+        <Providers>
           <Navbar />
           {children}
           <SpeedInsights />
-        </ThemeProvider>
-          </UserProvider>
+        </Providers>
         <Toaster />
       </body>
     </html>

@@ -1,3 +1,5 @@
+'use client'
+
 import { useCallback, useRef, useState } from 'react'
 import { Card, CardContent } from '@/components/UI/card'
 import { Upload } from 'lucide-react'
@@ -7,10 +9,10 @@ const MAX_FILE_SIZE = 5 * 1024 * 1024 // 5MB
 const ACCEPTED_FILE_TYPES = ['image/jpeg', 'image/png']
 
 interface ImageUploaderProps {
-  onImageSelected: (file: File) => void;
+  onImageUpload: (file: File) => void;
 }
 
-export function ImageUploader({ onImageSelected }: ImageUploaderProps) {
+export function ImageUploader({ onImageUpload }: ImageUploaderProps) {
   const { toast } = useToast()
   const inputRef = useRef<HTMLInputElement>(null)
   const [isDragging, setIsDragging] = useState(false)
@@ -32,8 +34,8 @@ export function ImageUploader({ onImageSelected }: ImageUploaderProps) {
       })
       return
     }
-    onImageSelected(file)
-  }, [onImageSelected, toast])
+    onImageUpload(file)
+  }, [onImageUpload, toast])
 
   const handleDrop = useCallback((e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault()
@@ -48,36 +50,42 @@ export function ImageUploader({ onImageSelected }: ImageUploaderProps) {
   }, [handleFile])
 
   return (
-    <Card>
-      <CardContent
-        className={`p-6 border-2 border-dashed rounded-lg transition-colors cursor-pointer
-          ${isDragging ? 'border-primary bg-primary/5' : 'hover:border-primary'}`}
-        onClick={() => inputRef.current?.click()}
-        onDrop={handleDrop}
-        onDragOver={(e) => {
-          e.preventDefault()
-          setIsDragging(true)
-        }}
-        onDragLeave={() => setIsDragging(false)}
-      >
-        <div className="text-center">
-          <Upload className="mx-auto h-12 w-12 text-gray-400" />
-          <div className="mt-4">
-            <input
-              ref={inputRef}
-              type="file"
-              className="hidden"
-              accept="image/png,image/jpeg"
-              onChange={handleChange}
-            />
-            <p className="text-sm text-gray-500">
-              Click to upload or drag and drop
+    <Card 
+      className="w-full max-w-3xl mx-auto cursor-pointer group"
+      onClick={() => inputRef.current?.click()}
+    >
+      <CardContent>
+        <div
+          className={`
+            flex flex-col items-center justify-center p-12 text-center
+            border-2 border-dashed rounded-lg
+            ${isDragging ? 'border-primary bg-primary/10' : 'border-border'}
+            ${!isDragging && 'group-hover:border-primary/50'}
+          `}
+          onDragOver={(e) => {
+            e.preventDefault()
+            setIsDragging(true)
+          }}
+          onDragLeave={() => setIsDragging(false)}
+          onDrop={handleDrop}
+        >
+          <Upload className="w-10 h-10 mb-4 text-muted-foreground group-hover:text-primary" />
+          <div className="space-y-2">
+            <p className="text-lg font-medium">
+              Drop your image here or click to browse
             </p>
-            <p className="text-xs text-gray-500 mt-1">
-              PNG, JPG up to 5MB
+            <p className="text-sm text-muted-foreground">
+              Supports JPEG and PNG up to 5MB
             </p>
           </div>
         </div>
+        <input
+          ref={inputRef}
+          type="file"
+          className="hidden"
+          accept={ACCEPTED_FILE_TYPES.join(',')}
+          onChange={handleChange}
+        />
       </CardContent>
     </Card>
   )

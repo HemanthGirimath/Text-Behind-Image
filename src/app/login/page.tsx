@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { signIn } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import { Input } from '@/components/UI/input'
 import { Label } from '@/components/UI/label'
@@ -13,62 +14,48 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/UI/card'
-import { Mail, Lock, ArrowRight } from 'lucide-react'
-import { useUser } from '@/lib/user-context'
-import { login } from '../actions/auth'
+import { Mail, Lock } from 'lucide-react'
 import { useToast } from "@/components/UI/use-toast"
 
 export default function LoginPage() {
   const router = useRouter()
-  const { dispatch } = useUser()
   const { toast } = useToast()
-  const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
   const [isLoading, setIsLoading] = useState(false)
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
     setIsLoading(true)
 
     try {
-      const result = await login(email, password)
-      
-      if (result.error) {
+      const formData = new FormData(e.currentTarget)
+      const email = formData.get('email') as string
+      const password = formData.get('password') as string
+
+      const result = await signIn('credentials', {
+        redirect: false,
+        email,
+        password,
+      })
+
+      if (result?.error) {
         toast({
           variant: "destructive",
           title: "Error",
           description: result.error
         })
+        setIsLoading(false)
         return
       }
 
-      if (!result.user) {
-        toast({
-          variant: "destructive",
-          title: "Error",
-          description: "No user data returned"
-        })
-        return
-      }
-
-      // Dispatch login action after successful login
-      dispatch({
-        type: 'LOGIN',
-        payload: {
-          email: result.user.email,
-          name: result.user.name,
-          plan: result.user.plan as 'free' | 'pro' | 'enterprise'
-        }
-      })
-      
-      toast({
-        title: "Success",
-        description: "Successfully logged in!"
-      })
-      // After successful login, redirect to profile
+      // Successful login
       router.push('/editor')
+      router.refresh()
     } catch (error) {
-      console.error('Login failed:', error)
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "An error occurred during login"
+      })
     } finally {
       setIsLoading(false)
     }
@@ -91,11 +78,10 @@ export default function LoginPage() {
                 <Mail className="absolute left-4 top-4 h-5 w-5 text-muted-foreground" />
                 <Input
                   id="email"
+                  name="email"
                   type="email"
                   placeholder="you@example.com"
                   className="pl-12 h-14 text-lg"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
                   required
                 />
               </div>
@@ -106,11 +92,10 @@ export default function LoginPage() {
                 <Lock className="absolute left-4 top-4 h-5 w-5 text-muted-foreground" />
                 <Input
                   id="password"
+                  name="password"
                   type="password"
                   placeholder="••••••••"
                   className="pl-12 h-14 text-lg"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
                   required
                 />
               </div>
@@ -130,7 +115,6 @@ export default function LoginPage() {
               ) : (
                 <div className="flex items-center gap-3">
                   Sign In
-                  <ArrowRight className="h-6 w-6" />
                 </div>
               )}
             </Button>

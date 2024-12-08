@@ -8,7 +8,7 @@ import { ChevronDown, Settings2 } from 'lucide-react'
 
 interface ImageAdjustmentsProps {
   adjustments: ImageAdjustments
-  onAdjustmentsChange: (adjustments: ImageAdjustments) => void
+  onChange: (adjustments: ImageAdjustments) => void
 }
 
 export interface ImageAdjustments {
@@ -37,7 +37,7 @@ export const defaultAdjustments: ImageAdjustments = {
   }
 }
 
-export function ImageAdjustments({ adjustments, onAdjustmentsChange }: ImageAdjustmentsProps) {
+export function ImageAdjustments({ adjustments, onChange }: ImageAdjustmentsProps) {
   return (
     <Collapsible>
       <CollapsibleTrigger className="flex w-full items-center justify-between rounded-lg bg-muted p-3">
@@ -59,7 +59,7 @@ export function ImageAdjustments({ adjustments, onAdjustmentsChange }: ImageAdju
               min={0}
               max={200}
               step={1}
-              onValueChange={([brightness]) => onAdjustmentsChange({ ...adjustments, brightness })}
+              onValueChange={([brightness]) => onChange({ ...adjustments, brightness })}
             />
           </div>
 
@@ -73,7 +73,7 @@ export function ImageAdjustments({ adjustments, onAdjustmentsChange }: ImageAdju
               min={0}
               max={200}
               step={1}
-              onValueChange={([contrast]) => onAdjustmentsChange({ ...adjustments, contrast })}
+              onValueChange={([contrast]) => onChange({ ...adjustments, contrast })}
             />
           </div>
 
@@ -87,7 +87,7 @@ export function ImageAdjustments({ adjustments, onAdjustmentsChange }: ImageAdju
               min={0}
               max={200}
               step={1}
-              onValueChange={([saturation]) => onAdjustmentsChange({ ...adjustments, saturation })}
+              onValueChange={([saturation]) => onChange({ ...adjustments, saturation })}
             />
           </div>
 
@@ -101,7 +101,7 @@ export function ImageAdjustments({ adjustments, onAdjustmentsChange }: ImageAdju
               min={0}
               max={10}
               step={0.1}
-              onValueChange={([blur]) => onAdjustmentsChange({ ...adjustments, blur })}
+              onValueChange={([blur]) => onChange({ ...adjustments, blur })}
             />
           </div>
         </div>

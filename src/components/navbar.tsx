@@ -4,8 +4,8 @@ import React from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { ThemeToggle } from './theme-toggle';
-import { useUser } from '@/lib/user-context';
 import { useToast } from "@/components/UI/use-toast"
+import { useSession, signOut } from 'next-auth/react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -13,14 +13,15 @@ import {
   DropdownMenuTrigger,
 } from '@/components/UI/drop-down';
 import { User, LogOut } from 'lucide-react';
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/UI/avatar";
 
 const Navbar: React.FC = () => {
   const router = useRouter();
-  const { state, dispatch } = useUser();
+  const { data: session } = useSession();
   const { toast } = useToast();
 
-  const handleSignOut = () => {
-    dispatch({ type: 'LOGOUT' });
+  const handleSignOut = async () => {
+    await signOut({ redirect: false });
     toast({
       title: "Success",
       description: "Signed out successfully"
@@ -29,45 +30,50 @@ const Navbar: React.FC = () => {
   };
 
   return (
-    <nav className='w-full flex justify-end mt-10'>
-      <div className='w-80 flex justify-between items-center'>
-        <ul className='flex space-x-6 items-center'>
-          <li>
-            <Link href="/">Home</Link>
-          </li>
-          <li>
-            <Link href="/editor">Editor</Link>
-          </li>
-          <li>
-            <Link href="/pricing">Pricing</Link>
-          </li>
-          {!state.isAuthenticated ? (
-            <li>
-              <Link href="/login">Login</Link>
-            </li>
-          ) : (
-            <li>
-              <DropdownMenu>
-                <DropdownMenuTrigger className="outline-none">
-                  <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-500 rounded-full flex items-center justify-center">
-                    <User className="w-4 h-4 text-white" />
-                  </div>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-48">
-                  <DropdownMenuItem onClick={() => router.push('/profile')}>
-                    <User className="mr-2 h-4 w-4" />
-                    Profile
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={handleSignOut}>
-                    <LogOut className="mr-2 h-4 w-4" />
-                    Sign Out
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            </li>
-          )}
-        </ul>
+    <nav className='w-full flex justify-between items-center px-4 md:px-6 py-4 border-b'>
+      <div className='flex items-center space-x-4 md:space-x-6'>
+        <Link href="/" className="text-xl font-bold">
+          TextBehindImage
+        </Link>
+        <Link href="/editor" className="hover:text-primary">
+          Editor
+        </Link>
+        <Link href="/pricing" className="hover:text-primary">
+          Pricing
+        </Link>
+      </div>
+      
+      <div className='flex items-center space-x-3 md:space-x-4'>
         <ThemeToggle />
+        {!session ? (
+          <Link 
+            href="/login"
+            className="hover:text-primary"
+          >
+            Login
+          </Link>
+        ) : (
+          <DropdownMenu>
+            <DropdownMenuTrigger className="outline-none">
+              <Avatar>
+                <AvatarImage src={session.user?.image || ''} />
+                <AvatarFallback>
+                  {session.user?.name?.[0]?.toUpperCase() || 'U'}
+                </AvatarFallback>
+              </Avatar>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={() => router.push('/profile')}>
+                <User className="mr-2 h-4 w-4" />
+                Profile
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={handleSignOut}>
+                <LogOut className="mr-2 h-4 w-4" />
+                Sign out
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        )}
       </div>
     </nav>
   );

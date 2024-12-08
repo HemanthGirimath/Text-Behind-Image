@@ -1,349 +1,421 @@
 'use client'
 
-import React, { useState, useCallback, useEffect, useRef } from 'react'
-import { removeBackground } from '@imgly/background-removal'
-import { Loader2, Download, Trash2, Settings2, Wand2, Lock, Menu, X } from 'lucide-react'
+import { useState, useCallback, useEffect, useRef } from 'react'
+import { Loader2, Download, Trash2, Settings2, Wand2, Lock, Menu, X, Type } from 'lucide-react'
 import { Button } from '@/components/UI/button'
 import { Alert, AlertDescription } from '@/components/UI/alert'
 import { ImageUploader } from '../textBehindImage/imageUploder'
 import { ResultDisplay } from '../textBehindImage/resultDisplay'
-import { defaultAdjustments, type ImageAdjustments, ImageAdjustments as ImageAdjuster } from '../textBehindImage/imageAdjustments'
-import TextEditor, { type TextStyle } from '../textBehindImage/textEditor'
+import { ImageAdjustments as ImageAdjuster, defaultAdjustments } from '../textBehindImage/imageAdjustments'
+import { TextEditor } from '../textBehindImage/textEditor'
+import { TextStyle } from '@/lib/types'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/UI/tabs'
+import { removeBackground } from '@imgly/background-removal'
+import { AuthGuard } from '@/components/auth-guard'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/UI/drop-down"
+import { DEFAULT_TEXT_STYLE } from '@/lib/plans'
 
-export default function EditorPage() {
+function EditorPageContent() {
   const [image, setImage] = useState<string | null>(null)
   const [processedImage, setProcessedImage] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
-  const [isProcessing, setIsProcessing] = useState(false)
-  const [activeTab, setActiveTab] = useState('text')
-  const [textStyle, setTextStyle] = useState<TextStyle>({
-    text: 'Your text here',
-    fontSize: 72,
-    fontFamily: 'Arial',
-    color: '#ffffff',
-    x: 50,
-    y: 50,
-    letterSpacing: 0,
-    opacity: 100,
-    rotation: 0,
-    direction: 'horizontal',
-    align: 'center',
-    verticalAlign: 'middle',
-    transform: {
-      scale: { x: 1, y: 1 },
-      skew: { x: 0, y: 0 }
-    },
-    style: {
-      bold: false,
-      italic: false,
-      underline: false,
-      stroke: {
-        enabled: false,
-        width: 2,
-        color: '#000000'
-      }
-    },
-    effects: {
-      shadow: {
-        enabled: false,
-        blur: 5,
-        color: '#000000',
-        offsetX: 2,
-        offsetY: 2
-      },
-      glow: {
-        enabled: false,
-        blur: 10,
-        color: '#ffffff',
-        strength: 1
-      },
-      gradient: {
-        enabled: false,
-        type: 'linear',
-        colors: ['#ff0000', '#00ff00'],
-        angle: 0
-      },
-      outline: {
-        enabled: false,
-        width: 2,
-        color: '#000000',
-        blur: 0
-      }
-    },
-    watermark: {
-      enabled: false,
-      text: '',
-      position: 'bottom-right',
-      fontSize: 24
-    }
-  })
-  const [imageAdjustments, setImageAdjustments] = useState<ImageAdjustments>(defaultAdjustments)
-  const [isSidebarOpen, setIsSidebarOpen] = useState(false)
-  const sidebarRef = useRef<HTMLDivElement>(null)
-  const buttonRef = useRef<HTMLButtonElement>(null)
+  const [loading, setLoading] = useState(false)
+  const [textStyles, setTextStyles] = useState<TextStyle[]>([])
+  const [selectedTextId, setSelectedTextId] = useState<string | null>(null)
+  const [imageAdjustments, setImageAdjustments] = useState(defaultAdjustments)
+  const [isSidebarOpen, setIsSidebarOpen] = useState(true)
 
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (
-        isSidebarOpen &&
-        sidebarRef.current &&
-        !sidebarRef.current.contains(event.target as Node) &&
-        buttonRef.current &&
-        !buttonRef.current.contains(event.target as Node)
-      ) {
-        setIsSidebarOpen(false)
-      }
-    }
-
-    document.addEventListener('mousedown', handleClickOutside)
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside)
-    }
-  }, [isSidebarOpen])
-
-  const handleImageSelect = useCallback((file: File) => {
-    const reader = new FileReader()
-    reader.onload = (e) => {
-      const result = e.target?.result
-      if (typeof result === 'string') {
-        setImage(result)
-        setProcessedImage(null)
-        setError(null)
-      }
-    }
-    reader.readAsDataURL(file)
-  }, [])
-
-  const handleBackgroundRemoval = useCallback(async () => {
-    if (!image) return
-
-    setIsProcessing(true)
-    try {
-      const response = await fetch(image)
-      const blob = await response.blob()
-      
-      const processedBlob = await removeBackground(blob)
-      const processedUrl = URL.createObjectURL(processedBlob)
-      
-      setProcessedImage(processedUrl)
-    } catch (err) {
-      setError('Failed to process image')
-      console.error('Background removal failed:', err)
-    } finally {
-      setIsProcessing(false)
-    }
-  }, [image])
-
-  const handleDeleteImage = useCallback(() => {
-    setImage(null)
+  const handleImageUpload = useCallback(async (file: File) => {
+    const url = URL.createObjectURL(file)
+    setImage(url)
     setProcessedImage(null)
     setError(null)
   }, [])
 
-  const handleDownload = useCallback(async () => {
-    try {
-      const canvas = document.querySelector('canvas')
-      if (!canvas) return
+  const handleTextStyleChange = useCallback((style: Partial<TextStyle> & { id: string }) => {
+    setTextStyles(prevStyles => {
+      if (style._delete) {
+        return prevStyles.filter(s => s.id !== style.id);
+      }
+      const styleExists = prevStyles.some(s => s.id === style.id);
+      if (styleExists) {
+        return prevStyles.map(s => s.id === style.id ? { ...s, ...style } : s);
+      }
+      return [...prevStyles, { ...DEFAULT_TEXT_STYLE, ...style } as TextStyle];
+    });
+  }, [])
 
-      const dataUrl = canvas.toDataURL('image/png')
-      const link = document.createElement('a')
-      link.download = 'text-behind-image.png'
-      link.href = dataUrl
-      document.body.appendChild(link)
-      link.click()
-      document.body.removeChild(link)
+  const processImage = useCallback(async () => {
+    if (!image) return
+    try {
+      setLoading(true)
+      setError(null)
+      const response = await removeBackground(image)
+      const url = URL.createObjectURL(response)
+      setProcessedImage(url)
     } catch (err) {
-      console.error('Download failed:', err)
-      setError('Failed to download image')
+      setError('Failed to process image. Please try again.')
+      console.error('Error processing image:', err)
+    } finally {
+      setLoading(false)
     }
+  }, [image])
+
+  const renderText = useCallback((ctx: CanvasRenderingContext2D, style: TextStyle) => {
+    ctx.save();
+    
+    // Position and rotation
+    const x = (style.x / 100) * ctx.canvas.width;
+    const y = (style.y / 100) * ctx.canvas.height;
+    ctx.translate(x, y);
+    ctx.rotate((style.rotation * Math.PI) / 180);
+
+    // Transform (Premium)
+    if (style.transform) {
+      ctx.transform(
+        style.transform.scaleX,  // scaleX
+        style.transform.skewX * Math.PI / 180,  // skewX
+        0,  // skewY
+        style.transform.scaleY,  // scaleY
+        0,  // translateX
+        0   // translateY
+      );
+    }
+
+    // Basic text styles
+    const fontStyle = style.style.italic ? 'italic' : 'normal';
+    const fontWeight = style.style.bold ? 'bold' : 'normal';
+    ctx.font = `${fontStyle} ${fontWeight} ${style.fontSize}px ${style.fontFamily}`;
+    ctx.textAlign = style.align;
+    ctx.globalAlpha = style.opacity / 100;
+
+    // Shadow (Premium)
+    if (style.shadow?.enabled && style.shadow.blur > 0) {
+      ctx.shadowBlur = style.shadow.blur;
+      ctx.shadowColor = style.shadow.color;
+      ctx.shadowOffsetX = style.shadow.offsetX;
+      ctx.shadowOffsetY = style.shadow.offsetY;
+    }
+
+    // Outline (Premium)
+    if (style.outline?.enabled && style.outline.width > 0) {
+      ctx.strokeStyle = style.outline.color;
+      ctx.lineWidth = style.outline.width;
+      ctx.strokeText(style.text, 0, 0);
+    }
+
+    // Gradient (Premium)
+    if (style.gradient?.enabled) {
+      const gradient = ctx.createLinearGradient(0, -style.fontSize/2, 0, style.fontSize/2);
+      style.gradient.colors.forEach((color, index) => {
+        gradient.addColorStop(index / (style.gradient!.colors.length - 1), color);
+      });
+      ctx.fillStyle = gradient;
+    } else {
+      ctx.fillStyle = style.color;
+    }
+
+    // Glow (Premium)
+    if (style.glow?.enabled && style.glow.intensity > 0) {
+      ctx.shadowBlur = style.glow.blur;
+      ctx.shadowColor = style.glow.color;
+    }
+
+    // Draw the text
+    ctx.fillText(style.text, 0, 0);
+    
+    ctx.restore();
+  }, []);
+
+  const handleDownload = useCallback(async (format: 'png' | 'jpeg' = 'png', quality: number = 1) => {
+    try {
+      const container = document.querySelector('.result-display-container');
+      const img = container?.querySelector('img');
+      if (!container || !img) {
+        console.error('Container or image not found');
+        setError('Failed to find image container');
+        return;
+      }
+
+      // Create a canvas that includes all layers
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+      if (!ctx) {
+        console.error('Failed to get canvas context');
+        setError('Failed to create canvas');
+        return;
+      }
+
+      // Get the original image dimensions
+      const originalImg = new Image();
+      originalImg.crossOrigin = "anonymous";
+      originalImg.src = image || '';
+      await new Promise((resolve, reject) => {
+        originalImg.onload = resolve;
+        originalImg.onerror = reject;
+      });
+
+      // Set canvas size to match original image dimensions
+      canvas.width = originalImg.naturalWidth;
+      canvas.height = originalImg.naturalHeight;
+
+      // Draw original image at its natural size
+      ctx.drawImage(originalImg, 0, 0, canvas.width, canvas.height);
+
+      // Draw text layers
+      for (const style of textStyles) {
+        ctx.save();
+        
+        // Calculate scaled position
+        const x = (style.x / 100) * canvas.width;
+        const y = (style.y / 100) * canvas.height;
+        
+        // Scale font size relative to image size
+        const scaledFontSize = style.fontSize * (canvas.width / container.offsetWidth);
+        
+        // Apply text styles
+        ctx.translate(x, y);
+        ctx.rotate((style.rotation * Math.PI) / 180);
+        
+        const fontStyle = style.style.italic ? 'italic' : 'normal';
+        const fontWeight = style.style.bold ? 'bold' : 'normal';
+        ctx.font = `${fontStyle} ${fontWeight} ${scaledFontSize}px ${style.fontFamily}`;
+        ctx.fillStyle = style.color;
+        ctx.textAlign = style.align;
+        ctx.globalAlpha = style.opacity / 100;
+
+        // Apply text effects
+        if (style.shadow?.enabled) {
+          ctx.shadowBlur = style.shadow.blur;
+          ctx.shadowColor = style.shadow.color;
+          ctx.shadowOffsetX = style.shadow.offsetX;
+          ctx.shadowOffsetY = style.shadow.offsetY;
+        }
+
+        if (style.glow?.enabled) {
+          ctx.shadowBlur = style.glow.blur;
+          ctx.shadowColor = style.glow.color;
+        }
+
+        if (style.outline?.enabled) {
+          ctx.strokeStyle = style.outline.color;
+          ctx.lineWidth = style.outline.width;
+          ctx.strokeText(style.text, 0, 0);
+        }
+
+        if (style.gradient?.enabled) {
+          const gradient = ctx.createLinearGradient(0, -scaledFontSize/2, 0, scaledFontSize/2);
+          style.gradient.colors.forEach((color, index) => {
+            gradient.addColorStop(index / (style.gradient!.colors.length - 1), color);
+          });
+          ctx.fillStyle = gradient;
+        }
+
+        ctx.fillText(style.text, 0, 0);
+        ctx.restore();
+      }
+
+      // Draw processed image on top if it exists
+      if (processedImage) {
+        const processedImg = new Image();
+        processedImg.crossOrigin = "anonymous";
+        processedImg.src = processedImage;
+        await new Promise((resolve, reject) => {
+          processedImg.onload = resolve;
+          processedImg.onerror = reject;
+        });
+        ctx.drawImage(processedImg, 0, 0, canvas.width, canvas.height);
+      }
+
+      // Apply image adjustments
+      if (imageAdjustments) {
+        const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+        const data = imageData.data;
+        
+        const brightness = imageAdjustments.brightness / 100;
+        const contrast = imageAdjustments.contrast / 100;
+        const saturation = imageAdjustments.saturation / 100;
+        
+        for (let i = 0; i < data.length; i += 4) {
+          // Apply adjustments
+          data[i] *= brightness;
+          data[i + 1] *= brightness;
+          data[i + 2] *= brightness;
+          
+          data[i] = ((data[i] - 128) * contrast) + 128;
+          data[i + 1] = ((data[i + 1] - 128) * contrast) + 128;
+          data[i + 2] = ((data[i + 2] - 128) * contrast) + 128;
+          
+          const avg = (data[i] + data[i + 1] + data[i + 2]) / 3;
+          data[i] = avg + (data[i] - avg) * saturation;
+          data[i + 1] = avg + (data[i + 1] - avg) * saturation;
+          data[i + 2] = avg + (data[i + 2] - avg) * saturation;
+        }
+        
+        ctx.putImageData(imageData, 0, 0);
+      }
+
+      // Convert to data URL and download
+      const dataUrl = canvas.toDataURL(`image/${format}`, quality);
+      const link = document.createElement('a');
+      link.download = `text-behind-image.${format}`;
+      link.href = dataUrl;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    } catch (err) {
+      console.error('Download failed:', err);
+      setError('Failed to download image. Please try again.');
+    }
+  }, [image, processedImage, textStyles, imageAdjustments]);
+
+  const resetImage = useCallback(() => {
+    setImage(null)
+    setProcessedImage(null)
+    setError(null)
+    setTextStyles([])
+    setSelectedTextId(null)
+    setImageAdjustments(defaultAdjustments)
   }, [])
 
   return (
-    <main className="h-screen overflow-hidden relative">
-      <div className="flex items-center justify-between p-4">
-        <h1 className="text-2xl md:text-3xl font-bold">Text Behind Image</h1>
-        <Button
-          ref={buttonRef}
-          variant="ghost"
-          size="icon"
-          className="lg:hidden"
-          onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-        >
-          {isSidebarOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
-        </Button>
-      </div>
-      <div className="flex flex-col lg:flex-row h-[calc(100vh-5rem)]">
-        <div className="flex-1 p-2 md:p-4 overflow-y-auto">
+    <div className="flex flex-col lg:flex-row min-h-screen">
+      {/* Main Content Area */}
+      <div className="flex-1 p-4 lg:p-8 flex flex-col">
+        <div className="h-full flex items-center justify-center">
           {!image ? (
-            <ImageUploader onImageSelected={handleImageSelect} />
+            <ImageUploader onImageUpload={handleImageUpload} />
           ) : (
-            <div className="space-y-4">
-              <div className="relative w-full max-w-[800px] h-auto aspect-[4/3] mx-auto rounded-lg overflow-hidden">
+            <div className="w-full space-y-4">
+              {error && (
+                <Alert variant="destructive">
+                  <AlertDescription>{error}</AlertDescription>
+                </Alert>
+              )}
+              <div className="relative">
                 <ResultDisplay 
                   originalImage={image}
                   processedImage={processedImage}
-                  textStyle={textStyle}
+                  textStyles={textStyles}
+                  selectedTextId={selectedTextId}
                   imageAdjustments={imageAdjustments}
-                  onTextStyleChange={setTextStyle}
+                  onTextStyleChange={handleTextStyleChange}
+                  onTextSelect={setSelectedTextId}
                 />
-                {isProcessing && (
-                  <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
-                    <Loader2 className="h-8 w-8 animate-spin text-white" />
+                {loading && (
+                  <div className="absolute inset-0 bg-background/50 backdrop-blur-sm flex items-center justify-center">
+                    <div className="flex flex-col items-center gap-4">
+                      <Loader2 className="h-8 w-8 animate-spin" />
+                      <p className="text-lg font-medium">Processing image...</p>
+                    </div>
                   </div>
                 )}
-                <div className="absolute top-2 md:top-4 right-2 md:right-4 flex gap-1 md:gap-2">
-                  <Button
-                    variant="secondary"
-                    size="icon"
-                    className="h-8 w-8 md:h-10 md:w-10"
-                    onClick={handleBackgroundRemoval}
-                    disabled={isProcessing}
-                  >
-                    <Settings2 className="h-4 w-4" />
-                  </Button>
-                  <Button
-                    variant="secondary"
-                    size="icon"
-                    className="h-8 w-8 md:h-10 md:w-10"
-                    onClick={handleDownload}
-                  >
-                    <Download className="h-4 w-4" />
-                  </Button>
-                  <Button
-                    variant="destructive"
-                    size="icon"
-                    className="h-8 w-8 md:h-10 md:w-10"
-                    onClick={handleDeleteImage}
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
-                </div>
+              </div>
+              <div className="flex justify-end gap-2">
+                <Button
+                  variant="outline"
+                  onClick={processImage}
+                  disabled={loading}
+                >
+                  {loading ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Processing...
+                    </>
+                  ) : (
+                    <>
+                      <Wand2 className="mr-2 h-4 w-4" />
+                      Remove Background
+                    </>
+                  )}
+                </Button>
+                {processedImage && (
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button>
+                        <Download className="mr-2 h-4 w-4" />
+                        Download
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent>
+                      <DropdownMenuItem onClick={() => handleDownload('png', 1)}>
+                        High Quality PNG
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => handleDownload('jpeg', 0.9)}>
+                        High Quality JPEG
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => handleDownload('jpeg', 0.7)}>
+                        Medium Quality JPEG
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                )}
+                <Button
+                  variant="outline"
+                  onClick={resetImage}
+                  disabled={loading}
+                >
+                  <Trash2 className="mr-2 h-4 w-4" />
+                  Reset
+                </Button>
               </div>
             </div>
           )}
-          {error && (
-            <Alert variant="destructive" className="mt-4">
-              <AlertDescription>{error}</AlertDescription>
-            </Alert>
-          )}
-
-          {/* Mobile Editor */}
-          <div className="lg:hidden mt-4">
-            <Tabs defaultValue="text" className="w-full">
-              <TabsList className="w-full grid grid-cols-3 p-1">
-                <TabsTrigger value="text" className="py-3">Text</TabsTrigger>
-                <TabsTrigger value="image" className="py-3">Image</TabsTrigger>
-                <TabsTrigger value="ai" className="py-3">AI</TabsTrigger>
-              </TabsList>
-
-              <TabsContent value="text">
-                <TextEditor 
-                  textStyle={textStyle}
-                  onTextStyleChange={setTextStyle}
-                  controlsOnly={true}
-                  onProcessImage={handleBackgroundRemoval}
-                />
-              </TabsContent>
-
-              <TabsContent value="image">
-                <ImageAdjuster
-                  adjustments={imageAdjustments}
-                  onAdjustmentsChange={setImageAdjustments}
-                />
-              </TabsContent>
-
-              <TabsContent value="ai" className="space-y-4">
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <h3 className="text-lg font-medium">AI Features</h3>
-                    <Lock className="h-4 w-4 text-muted-foreground" />
-                  </div>
-                  <div className="space-y-2 opacity-50">
-                    <Button variant="outline" className="w-full" disabled>
-                      <Wand2 className="h-4 w-4 mr-2" />
-                      Generate Text Styles
-                    </Button>
-                    <Button variant="outline" className="w-full" disabled>
-                      <Wand2 className="h-4 w-4 mr-2" />
-                      Smart Image Enhancement
-                    </Button>
-                    <Button variant="outline" className="w-full" disabled>
-                      <Wand2 className="h-4 w-4 mr-2" />
-                      AI Background Removal
-                    </Button>
-                  </div>
-                  <div className="text-sm text-muted-foreground text-center">
-                    Upgrade to Pro to unlock AI-powered features
-                  </div>
-                </div>
-              </TabsContent>
-            </Tabs>
-          </div>
         </div>
-        
-        {/* Desktop Sidebar */}
-        <div 
-          ref={sidebarRef}
-          className={`
-            fixed lg:relative top-0 right-0 h-full w-[85vw] md:w-[300px]
-            bg-background/95 backdrop-blur-sm border-l p-4 
-            overflow-y-auto transition-transform duration-300 ease-in-out
-            ${isSidebarOpen ? 'translate-x-0' : 'translate-x-full lg:translate-x-0'}
-            z-50 shadow-lg lg:shadow-none
-          `}
-        >
-          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-            <TabsList className="w-full grid grid-cols-3 p-1">
-              <TabsTrigger value="text" className="py-3">Text</TabsTrigger>
-              <TabsTrigger value="image" className="py-3">Image</TabsTrigger>
-              <TabsTrigger value="ai" className="py-3">AI</TabsTrigger>
+      </div>
+
+      {/* Editor Panel */}
+      {image && (
+        <div className="w-full lg:w-80 border-t lg:border-l lg:border-t-0 bg-background p-4">
+          <Tabs defaultValue="text" className="w-full">
+            <TabsList className="w-full grid grid-cols-2">
+              <TabsTrigger value="text">
+                <Type className="mr-2 h-4 w-4" />
+                Text
+              </TabsTrigger>
+              <TabsTrigger value="image">
+                <Settings2 className="mr-2 h-4 w-4" />
+                Image
+              </TabsTrigger>
             </TabsList>
-
-            <TabsContent value="text">
-              <TextEditor 
-                textStyle={textStyle}
-                onTextStyleChange={setTextStyle}
-                controlsOnly={true}
-                onProcessImage={handleBackgroundRemoval}
-              />
+            <TabsContent value="text" className="mt-4">
+              <div className="w-80 bg-background">
+                <TextEditor
+                  textStyles={textStyles}
+                  selectedTextId={selectedTextId}
+                  onTextStyleChange={handleTextStyleChange}
+                  onTextSelect={setSelectedTextId}
+                  onDelete={() => {
+                    if (selectedTextId) {
+                      setTextStyles(textStyles.filter(style => style.id !== selectedTextId));
+                      setSelectedTextId(null);
+                    }
+                  }}
+                />
+              </div>
             </TabsContent>
-
-            <TabsContent value="image">
+            <TabsContent value="image" className="mt-4">
               <ImageAdjuster
                 adjustments={imageAdjustments}
-                onAdjustmentsChange={setImageAdjustments}
+                onChange={setImageAdjustments}
               />
-            </TabsContent>
-
-            <TabsContent value="ai" className="space-y-4">
-              <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <h3 className="text-lg font-medium">AI Features</h3>
-                  <Lock className="h-4 w-4 text-muted-foreground" />
-                </div>
-                <div className="space-y-2 opacity-50">
-                  <Button variant="outline" className="w-full" disabled>
-                    <Wand2 className="h-4 w-4 mr-2" />
-                    Generate Text Styles
-                  </Button>
-                  <Button variant="outline" className="w-full" disabled>
-                    <Wand2 className="h-4 w-4 mr-2" />
-                    Smart Image Enhancement
-                  </Button>
-                  <Button variant="outline" className="w-full" disabled>
-                    <Wand2 className="h-4 w-4 mr-2" />
-                    AI Background Removal
-                  </Button>
-                </div>
-                <div className="text-sm text-muted-foreground text-center">
-                  Upgrade to Pro to unlock AI-powered features
-                </div>
-              </div>
             </TabsContent>
           </Tabs>
         </div>
-      </div>
-    </main>
+      )}
+    </div>
+  )
+}
+
+export default function EditorPage() {
+  return (
+    <AuthGuard>
+      <EditorPageContent />
+    </AuthGuard>
   )
 }
