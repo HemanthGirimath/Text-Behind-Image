@@ -7,27 +7,81 @@ import { Button } from '@/components/UI/button'
 import { Alert, AlertDescription } from '@/components/UI/alert'
 import { ImageUploader } from '../textBehindImage/imageUploder'
 import { ResultDisplay } from '../textBehindImage/resultDisplay'
-import { defaultAdjustments, ImageAdjustments, ImageAdjustments as ImageAdjuster } from '../textBehindImage/imageAdjustments'
-import { TextEditor, type TextStyle } from '@/app/textBehindImage/textEditor'
+import { defaultAdjustments, type ImageAdjustments, ImageAdjustments as ImageAdjuster } from '../textBehindImage/imageAdjustments'
+import TextEditor, { type TextStyle } from '../textBehindImage/textEditor'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/UI/tabs'
-import { useSubscription } from '@/hooks/useSubscription'
-import type { FeatureKey } from '@/lib/subscription'
-import { UpgradeModal } from '@/components/UI/upgrade-modal'
-import { useEditor } from '@/contexts/editor-context'
 
 export default function EditorPage() {
-  const { state, dispatch } = useEditor()
   const [image, setImage] = useState<string | null>(null)
   const [processedImage, setProcessedImage] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [isProcessing, setIsProcessing] = useState(false)
   const [activeTab, setActiveTab] = useState('text')
+  const [textStyle, setTextStyle] = useState<TextStyle>({
+    text: 'Your text here',
+    fontSize: 72,
+    fontFamily: 'Arial',
+    color: '#ffffff',
+    x: 50,
+    y: 50,
+    letterSpacing: 0,
+    opacity: 100,
+    rotation: 0,
+    direction: 'horizontal',
+    align: 'center',
+    verticalAlign: 'middle',
+    transform: {
+      scale: { x: 1, y: 1 },
+      skew: { x: 0, y: 0 }
+    },
+    style: {
+      bold: false,
+      italic: false,
+      underline: false,
+      stroke: {
+        enabled: false,
+        width: 2,
+        color: '#000000'
+      }
+    },
+    effects: {
+      shadow: {
+        enabled: false,
+        blur: 5,
+        color: '#000000',
+        offsetX: 2,
+        offsetY: 2
+      },
+      glow: {
+        enabled: false,
+        blur: 10,
+        color: '#ffffff',
+        strength: 1
+      },
+      gradient: {
+        enabled: false,
+        type: 'linear',
+        colors: ['#ff0000', '#00ff00'],
+        angle: 0
+      },
+      outline: {
+        enabled: false,
+        width: 2,
+        color: '#000000',
+        blur: 0
+      }
+    },
+    watermark: {
+      enabled: false,
+      text: '',
+      position: 'bottom-right',
+      fontSize: 24
+    }
+  })
+  const [imageAdjustments, setImageAdjustments] = useState<ImageAdjustments>(defaultAdjustments)
   const [isSidebarOpen, setIsSidebarOpen] = useState(false)
-  const [showUpgradeModal, setShowUpgradeModal] = useState(false)
-  const [upgradeFeature, setUpgradeFeature] = useState<FeatureKey>('basicEffects')
   const sidebarRef = useRef<HTMLDivElement>(null)
   const buttonRef = useRef<HTMLButtonElement>(null)
-  const { canUseFeature, currentPlan } = useSubscription()
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -105,107 +159,19 @@ export default function EditorPage() {
     }
   }, [])
 
-  const handleFeatureUse = (feature: FeatureKey, action: () => void) => {
-    if (canUseFeature(feature)) {
-      action()
-    } else {
-      setUpgradeFeature(feature)
-      setShowUpgradeModal(true)
-    }
-  }
-
-  const handleTextStyleChange = (newStyle: TextStyle) => {
-    dispatch({
-      type: 'UPDATE_TEXT_STYLE',
-      payload: { index: state.activeTextIndex, style: newStyle }
-    })
-  }
-
-  const handleAddText = () => {
-    dispatch({
-      type: 'ADD_TEXT_STYLE',
-      payload: {
-        text: `Text ${state.textStyles.length + 1}`,
-        fontSize: 32,
-        fontFamily: 'Arial',
-        color: '#ffffff',
-        x: 50,
-        y: 50,
-        letterSpacing: 0,
-        opacity: 1,
-        rotation: 0,
-        direction: 'horizontal',
-        align: 'center',
-        verticalAlign: 'middle',
-        transform: {
-          scale: { x: 1, y: 1 },
-          skew: { x: 0, y: 0 }
-        },
-        style: {
-          bold: false,
-          italic: false,
-          underline: false,
-          stroke: {
-            enabled: false,
-            width: 2,
-            color: '#000000'
-          }
-        },
-        effects: {
-          shadow: {
-            enabled: false,
-            blur: 5,
-            color: '#000000',
-            offsetX: 2,
-            offsetY: 2
-          },
-          glow: {
-            enabled: false,
-            blur: 10,
-            color: '#ffffff',
-            strength: 1
-          },
-          gradient: {
-            enabled: false,
-            type: 'linear',
-            colors: ['#ff0000', '#00ff00'],
-            angle: 0
-          },
-          outline: {
-            enabled: false,
-            width: 2,
-            color: '#000000',
-            blur: 0
-          }
-        },
-        watermark: {
-          enabled: false,
-          text: '',
-          position: 'bottom-right',
-          fontSize: 24
-        }
-      }
-    })
-  }
-
-  const handleDeleteText = () => {
-    dispatch({
-      type: 'DELETE_TEXT_STYLE',
-      payload: state.activeTextIndex
-    })
-  }
-
-  const handleTextSelect = (index: number) => {
-    dispatch({
-      type: 'SET_ACTIVE_TEXT_INDEX',
-      payload: index
-    })
-  }
-
   return (
     <main className="h-screen overflow-hidden relative">
       <div className="flex items-center justify-between p-4">
         <h1 className="text-2xl md:text-3xl font-bold">Text Behind Image</h1>
+        <Button
+          ref={buttonRef}
+          variant="ghost"
+          size="icon"
+          className="lg:hidden"
+          onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+        >
+          {isSidebarOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
+        </Button>
       </div>
       <div className="flex flex-col lg:flex-row h-[calc(100vh-5rem)]">
         <div className="flex-1 p-2 md:p-4 overflow-y-auto">
@@ -217,11 +183,9 @@ export default function EditorPage() {
                 <ResultDisplay 
                   originalImage={image}
                   processedImage={processedImage}
-                  textStyles={state.textStyles}
-                  activeTextIndex={state.activeTextIndex}
-                  onTextClick={handleTextSelect}
-                  imageAdjustments={defaultAdjustments}
-                  onTextStyleChange={handleTextStyleChange}
+                  textStyle={textStyle}
+                  imageAdjustments={imageAdjustments}
+                  onTextStyleChange={setTextStyle}
                 />
                 {isProcessing && (
                   <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
@@ -275,30 +239,17 @@ export default function EditorPage() {
 
               <TabsContent value="text">
                 <TextEditor 
-                  textStyles={state.textStyles}
-                  activeTextIndex={state.activeTextIndex}
-                  onTextStyleChange={handleTextStyleChange}
-                  onAddText={handleAddText}
-                  onDeleteText={handleDeleteText}
-                  onTextSelect={handleTextSelect}
+                  textStyle={textStyle}
+                  onTextStyleChange={setTextStyle}
                   controlsOnly={true}
-                  onProcessImage={async () => {
-                    if (!canUseFeature('basicEffects')) {
-                      setUpgradeFeature('basicEffects');
-                      setShowUpgradeModal(true);
-                      return;
-                    }
-                    // Process image logic here
-                  }}
+                  onProcessImage={handleBackgroundRemoval}
                 />
               </TabsContent>
 
               <TabsContent value="image">
                 <ImageAdjuster
-                  adjustments={defaultAdjustments}
-                  onAdjustmentsChange={(newAdjustments) => {
-                    // Update image adjustments logic here
-                  }}
+                  adjustments={imageAdjustments}
+                  onAdjustmentsChange={setImageAdjustments}
                 />
               </TabsContent>
 
@@ -313,25 +264,11 @@ export default function EditorPage() {
                       <Wand2 className="h-4 w-4 mr-2" />
                       Generate Text Styles
                     </Button>
-                    <Button 
-                      variant="outline" 
-                      className="w-full" 
-                      onClick={() => handleFeatureUse('aiFeatures', () => {
-                        // AI enhancement logic
-                      })}
-                      disabled={!canUseFeature('aiFeatures')}
-                    >
+                    <Button variant="outline" className="w-full" disabled>
                       <Wand2 className="h-4 w-4 mr-2" />
                       Smart Image Enhancement
                     </Button>
-                    <Button 
-                      variant="outline" 
-                      className="w-full" 
-                      onClick={() => handleFeatureUse('aiFeatures', () => {
-                        // AI background removal logic
-                      })}
-                      disabled={!canUseFeature('aiFeatures')}
-                    >
+                    <Button variant="outline" className="w-full" disabled>
                       <Wand2 className="h-4 w-4 mr-2" />
                       AI Background Removal
                     </Button>
@@ -365,30 +302,17 @@ export default function EditorPage() {
 
             <TabsContent value="text">
               <TextEditor 
-                textStyles={state.textStyles}
-                activeTextIndex={state.activeTextIndex}
-                onTextStyleChange={handleTextStyleChange}
-                onAddText={handleAddText}
-                onDeleteText={handleDeleteText}
-                onTextSelect={handleTextSelect}
+                textStyle={textStyle}
+                onTextStyleChange={setTextStyle}
                 controlsOnly={true}
-                onProcessImage={async () => {
-                  if (!canUseFeature('basicEffects')) {
-                    setUpgradeFeature('basicEffects');
-                    setShowUpgradeModal(true);
-                    return;
-                  }
-                  // Process image logic here
-                }}
+                onProcessImage={handleBackgroundRemoval}
               />
             </TabsContent>
 
             <TabsContent value="image">
               <ImageAdjuster
-                adjustments={defaultAdjustments}
-                onAdjustmentsChange={(newAdjustments) => {
-                  // Update image adjustments logic here
-                }}
+                adjustments={imageAdjustments}
+                onAdjustmentsChange={setImageAdjustments}
               />
             </TabsContent>
 
@@ -403,25 +327,11 @@ export default function EditorPage() {
                     <Wand2 className="h-4 w-4 mr-2" />
                     Generate Text Styles
                   </Button>
-                  <Button 
-                    variant="outline" 
-                    className="w-full" 
-                    onClick={() => handleFeatureUse('aiFeatures', () => {
-                      // AI enhancement logic
-                    })}
-                    disabled={!canUseFeature('aiFeatures')}
-                  >
+                  <Button variant="outline" className="w-full" disabled>
                     <Wand2 className="h-4 w-4 mr-2" />
                     Smart Image Enhancement
                   </Button>
-                  <Button 
-                    variant="outline" 
-                    className="w-full" 
-                    onClick={() => handleFeatureUse('aiFeatures', () => {
-                      // AI background removal logic
-                    })}
-                    disabled={!canUseFeature('aiFeatures')}
-                  >
+                  <Button variant="outline" className="w-full" disabled>
                     <Wand2 className="h-4 w-4 mr-2" />
                     AI Background Removal
                   </Button>
@@ -434,12 +344,6 @@ export default function EditorPage() {
           </Tabs>
         </div>
       </div>
-      <UpgradeModal 
-        show={showUpgradeModal}
-        onClose={() => setShowUpgradeModal(false)}
-        feature={upgradeFeature}
-        currentPlan={currentPlan}
-      />
     </main>
   )
 }

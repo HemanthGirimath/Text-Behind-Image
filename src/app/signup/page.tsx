@@ -1,171 +1,157 @@
-'use client';
+'use client'
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { Button } from '@/components/UI/button';
-import { Input } from '@/components/UI/input';
-import { Label } from '@/components/UI/label';
-import Link from 'next/link';
-import { FaGoogle, FaGithub } from 'react-icons/fa';
-import { useToast } from '@/components/UI/use-toast';
-import { signIn } from 'next-auth/react';
+import { useState } from 'react'
+import { useRouter } from 'next/navigation'
+import { Input } from '@/components/UI/input'
+import { Label } from '@/components/UI/label'
+import { Button } from '@/components/UI/button'
+import { signUp } from '../actions/auth'
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from '@/components/UI/card'
+import { Mail, Lock, User, ArrowRight } from 'lucide-react'
+import { useUser } from '@/lib/user-context'
+import { useToast } from "@/components/UI/use-toast"
 
-export default function SignUpPage() {
-  const [name, setName] = useState('');
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
-  const router = useRouter();
-  const { toast } = useToast();
+export default function SignupPage() {
+  const router = useRouter()
+  const { dispatch } = useUser()
+  const { toast } = useToast()
+  const [name, setName] = useState('')
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+  const [isLoading, setIsLoading] = useState(false)
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsLoading(true);
-
+    e.preventDefault()
+    setIsLoading(true)
+  
     try {
-      const response = await fetch('/api/auth/register', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          name,
-          email,
-          password,
-        }),
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.message || 'Something went wrong');
+      const result = await signUp(email, password, name)
+      
+      if (result.error) {
+        toast({
+          variant: "destructive",
+          title: "Error",
+          description: result.error
+        })
+        return
       }
 
+      if (!result.user) {
+        toast({
+          variant: "destructive",
+          title: "Error",
+          description: "No user data returned"
+        })
+        return
+      }
+  
       toast({
-        title: 'Success',
-        description: 'Account created successfully! Please login.',
-        variant: 'default',
-      });
-
-      // Redirect to login page after successful registration
-      router.push('/login');
+        title: "Success",
+        description: "Account created successfully! Please log in."
+      })
+      // After successful signup, redirect to login
+      router.push('/login')
     } catch (error) {
-      toast({
-        title: 'Error',
-        description: error instanceof Error ? error.message : 'Failed to create account',
-        variant: 'destructive',
-      });
+      console.error('Signup failed:', error)
     } finally {
-      setIsLoading(false);
+      setIsLoading(false)
     }
-  };
-
+  }
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 flex items-center justify-center p-4">
-      <div className="w-full max-w-md space-y-8 bg-white/5 backdrop-blur-lg rounded-2xl p-8 shadow-xl">
-        <div className="text-center">
-          <h2 className="text-3xl font-bold tracking-tight text-white">
-            Create your account
-          </h2>
-          <p className="mt-2 text-sm text-gray-400">
-            Start creating amazing text behind images
-          </p>
-        </div>
-
-        <form onSubmit={handleSubmit} className="mt-8 space-y-6">
-          <div className="space-y-4">
-            <div>
-              <Label htmlFor="name" className="text-gray-300">
-                Name
-              </Label>
-              <Input
-                id="name"
-                type="text"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                required
-                className="mt-1 bg-white/10 border-gray-700 text-white placeholder-gray-400 focus:ring-indigo-500 focus:border-indigo-500"
-                placeholder="Enter your name"
-              />
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-900 to-gray-800 p-4">
+      <Card className="w-full max-w-2xl">
+        <CardHeader className="space-y-4 p-8">
+          <CardTitle className="text-4xl font-bold text-center">Create Account</CardTitle>
+          <CardDescription className="text-center text-lg">
+            Sign up for a new account to get started
+          </CardDescription>
+        </CardHeader>
+        <form onSubmit={handleSubmit}>
+          <CardContent className="space-y-6 p-8">
+            <div className="space-y-3">
+              <Label htmlFor="name" className="text-lg">Name</Label>
+              <div className="relative">
+                <User className="absolute left-4 top-4 h-5 w-5 text-muted-foreground" />
+                <Input
+                  id="name"
+                  type="text"
+                  placeholder="John Doe"
+                  className="pl-12 h-14 text-lg"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  required
+                />
+              </div>
             </div>
-
-            <div>
-              <Label htmlFor="email" className="text-gray-300">
-                Email
-              </Label>
-              <Input
-                id="email"
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-                className="mt-1 bg-white/10 border-gray-700 text-white placeholder-gray-400 focus:ring-indigo-500 focus:border-indigo-500"
-                placeholder="Enter your email"
-              />
+            <div className="space-y-3">
+              <Label htmlFor="email" className="text-lg">Email</Label>
+              <div className="relative">
+                <Mail className="absolute left-4 top-4 h-5 w-5 text-muted-foreground" />
+                <Input
+                  id="email"
+                  type="email"
+                  placeholder="you@example.com"
+                  className="pl-12 h-14 text-lg"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
+                />
+              </div>
             </div>
-
-            <div>
-              <Label htmlFor="password" className="text-gray-300">
-                Password
-              </Label>
-              <Input
-                id="password"
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-                className="mt-1 bg-white/10 border-gray-700 text-white placeholder-gray-400 focus:ring-indigo-500 focus:border-indigo-500"
-                placeholder="Create a password"
-              />
+            <div className="space-y-3">
+              <Label htmlFor="password" className="text-lg">Password</Label>
+              <div className="relative">
+                <Lock className="absolute left-4 top-4 h-5 w-5 text-muted-foreground" />
+                <Input
+                  id="password"
+                  type="password"
+                  placeholder="••••••••"
+                  className="pl-12 h-14 text-lg"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                />
+              </div>
             </div>
-          </div>
-
-          <Button
-            type="submit"
-            disabled={isLoading}
-            className="w-full bg-indigo-600 hover:bg-indigo-700 text-white"
-          >
-            {isLoading ? 'Creating account...' : 'Create account'}
-          </Button>
-
-          <div className="relative my-6">
-            <div className="absolute inset-0 flex items-center">
-              <div className="w-full border-t border-gray-700"></div>
-            </div>
-            <div className="relative flex justify-center text-sm">
-              <span className="px-2 bg-gray-900 text-gray-400">Or continue with</span>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => signIn('google')}
-              className="bg-white/10 hover:bg-white/20 text-white border-gray-700"
+          </CardContent>
+          <CardFooter className="flex flex-col space-y-6 p-8">
+            <Button 
+              type="submit" 
+              className="w-full py-8 text-xl font-semibold bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 text-white shadow-lg transition-all duration-200 hover:shadow-xl"
+              disabled={isLoading}
             >
-              <FaGoogle className="mr-2" />
-              Google
+              {isLoading ? (
+                <div className="flex items-center gap-3">
+                  <div className="h-5 w-5 animate-spin rounded-full border-2 border-current border-t-transparent" />
+                  Creating account...
+                </div>
+              ) : (
+                <div className="flex items-center gap-3">
+                  Sign Up
+                  <ArrowRight className="h-6 w-6" />
+                </div>
+              )}
             </Button>
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => signIn('github')}
-              className="bg-white/10 hover:bg-white/20 text-white border-gray-700"
-            >
-              <FaGithub className="mr-2" />
-              GitHub
-            </Button>
-          </div>
-
-          <p className="text-center text-sm text-gray-400">
-            Already have an account?{' '}
-            <Link href="/login" className="text-indigo-400 hover:text-indigo-300">
-              Sign in
-            </Link>
-          </p>
+            <div className="text-center text-base text-muted-foreground">
+              Already have an account?{' '}
+              <button
+                type="button"
+                onClick={() => router.push('/login')}
+                className="text-primary hover:underline font-medium"
+              >
+                Sign in
+              </button>
+            </div>
+          </CardFooter>
         </form>
-      </div>
+      </Card>
     </div>
-  );
+  )
 }

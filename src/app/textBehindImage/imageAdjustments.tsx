@@ -5,11 +5,11 @@ import { Slider } from '@/components/UI/slider'
 import { Label } from '@/components/UI/label'
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/UI/collapsible"
 import { ChevronDown, Settings2 } from 'lucide-react'
-import { useSubscription } from '@/hooks/useSubscription'
-import { UpgradeModal } from '@/components/UI/upgrade-modal'
-import type { FeatureKey } from '@/lib/subscription'
-import { useEditor } from '@/contexts/editor-context'
-import { UserPlan } from '@/lib/utils'
+
+interface ImageAdjustmentsProps {
+  adjustments: ImageAdjustments
+  onAdjustmentsChange: (adjustments: ImageAdjustments) => void
+}
 
 export interface ImageAdjustments {
   brightness: number
@@ -22,11 +22,6 @@ export interface ImageAdjustments {
     sepia: boolean
     invert: boolean
   }
-}
-
-export interface ImageAdjustmentsProps {
-  adjustments: ImageAdjustments;
-  onAdjustmentsChange: (adjustments: ImageAdjustments) => void;
 }
 
 export const defaultAdjustments: ImageAdjustments = {
@@ -43,138 +38,74 @@ export const defaultAdjustments: ImageAdjustments = {
 }
 
 export function ImageAdjustments({ adjustments, onAdjustmentsChange }: ImageAdjustmentsProps) {
-  const { canUseFeature, currentPlan } = useSubscription()
-  const [showUpgradeModal, setShowUpgradeModal] = React.useState(false)
-  const [restrictedFeature, setRestrictedFeature] = React.useState<FeatureKey>('basicEffects')
-
-  const canUseBasicEffects = canUseFeature('basicEffects')
-  const canUseAdvancedEffects = canUseFeature('advancedEffects')
-
-  const handleAdjustmentChange = (newAdjustments: Partial<ImageAdjustments>) => {
-    if (!canUseBasicEffects) {
-      setRestrictedFeature('basicEffects')
-      setShowUpgradeModal(true)
-      return
-    }
-
-    if (newAdjustments.filters && !canUseAdvancedEffects) {
-      setRestrictedFeature('advancedEffects')
-      setShowUpgradeModal(true)
-      return
-    }
-
-    onAdjustmentsChange({ ...adjustments, ...newAdjustments })
-  }
-
   return (
-    <>
-      <Collapsible className="w-full space-y-2">
-        <CollapsibleTrigger className="flex w-full items-center justify-between px-4 py-2 hover:bg-accent hover:text-accent-foreground">
-          <div className="flex items-center space-x-2">
-            <Settings2 className="h-4 w-4" />
-            <span>Image Adjustments</span>
+    <Collapsible>
+      <CollapsibleTrigger className="flex w-full items-center justify-between rounded-lg bg-muted p-3">
+        <div className="flex items-center gap-2">
+          <Settings2 className="h-4 w-4" />
+          <span className="font-medium">Image Adjustments</span>
+        </div>
+        <ChevronDown className="h-4 w-4" />
+      </CollapsibleTrigger>
+      <CollapsibleContent className="space-y-4 p-3">
+        <div className="space-y-4">
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <Label className="text-xs">Brightness</Label>
+              <span className="text-xs text-muted-foreground">{adjustments.brightness}%</span>
+            </div>
+            <Slider
+              value={[adjustments.brightness]}
+              min={0}
+              max={200}
+              step={1}
+              onValueChange={([brightness]) => onAdjustmentsChange({ ...adjustments, brightness })}
+            />
           </div>
-          <ChevronDown className="h-4 w-4" />
-        </CollapsibleTrigger>
-        <CollapsibleContent className="space-y-4 px-4">
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <Label>Brightness</Label>
-              <Slider
-                min={0}
-                max={200}
-                step={1}
-                value={[adjustments.brightness]}
-                onValueChange={([value]) => handleAdjustmentChange({ brightness: value })}
-                disabled={!canUseBasicEffects}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>Contrast</Label>
-              <Slider
-                min={0}
-                max={200}
-                step={1}
-                value={[adjustments.contrast]}
-                onValueChange={([value]) => handleAdjustmentChange({ contrast: value })}
-                disabled={!canUseBasicEffects}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>Saturation</Label>
-              <Slider
-                min={0}
-                max={200}
-                step={1}
-                value={[adjustments.saturation]}
-                onValueChange={([value]) => handleAdjustmentChange({ saturation: value })}
-                disabled={!canUseBasicEffects}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>Blur</Label>
-              <Slider
-                min={0}
-                max={20}
-                step={1}
-                value={[adjustments.blur]}
-                onValueChange={([value]) => handleAdjustmentChange({ blur: value })}
-                disabled={!canUseBasicEffects}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>Opacity</Label>
-              <Slider
-                min={0}
-                max={100}
-                step={1}
-                value={[adjustments.opacity]}
-                onValueChange={([value]) => handleAdjustmentChange({ opacity: value })}
-                disabled={!canUseBasicEffects}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>Filters</Label>
-              <div className="space-y-2">
-                <div className="flex items-center space-x-2">
-                  <input
-                    type="checkbox"
-                    checked={adjustments.filters.grayscale}
-                    onChange={(e) => handleAdjustmentChange({ filters: { ...adjustments.filters, grayscale: e.target.checked } })}
-                    disabled={!canUseAdvancedEffects}
-                  />
-                  <Label>Grayscale</Label>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <input
-                    type="checkbox"
-                    checked={adjustments.filters.sepia}
-                    onChange={(e) => handleAdjustmentChange({ filters: { ...adjustments.filters, sepia: e.target.checked } })}
-                    disabled={!canUseAdvancedEffects}
-                  />
-                  <Label>Sepia</Label>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <input
-                    type="checkbox"
-                    checked={adjustments.filters.invert}
-                    onChange={(e) => handleAdjustmentChange({ filters: { ...adjustments.filters, invert: e.target.checked } })}
-                    disabled={!canUseAdvancedEffects}
-                  />
-                  <Label>Invert</Label>
-                </div>
-              </div>
-            </div>
-          </div>
-        </CollapsibleContent>
-      </Collapsible>
 
-      <UpgradeModal
-        show={showUpgradeModal}
-        onClose={() => setShowUpgradeModal(false)}
-        feature={restrictedFeature}
-        currentPlan={currentPlan as UserPlan}
-      />
-    </>
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <Label className="text-xs">Contrast</Label>
+              <span className="text-xs text-muted-foreground">{adjustments.contrast}%</span>
+            </div>
+            <Slider
+              value={[adjustments.contrast]}
+              min={0}
+              max={200}
+              step={1}
+              onValueChange={([contrast]) => onAdjustmentsChange({ ...adjustments, contrast })}
+            />
+          </div>
+
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <Label className="text-xs">Saturation</Label>
+              <span className="text-xs text-muted-foreground">{adjustments.saturation}%</span>
+            </div>
+            <Slider
+              value={[adjustments.saturation]}
+              min={0}
+              max={200}
+              step={1}
+              onValueChange={([saturation]) => onAdjustmentsChange({ ...adjustments, saturation })}
+            />
+          </div>
+
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <Label className="text-xs">Blur</Label>
+              <span className="text-xs text-muted-foreground">{adjustments.blur}px</span>
+            </div>
+            <Slider
+              value={[adjustments.blur]}
+              min={0}
+              max={10}
+              step={0.1}
+              onValueChange={([blur]) => onAdjustmentsChange({ ...adjustments, blur })}
+            />
+          </div>
+        </div>
+      </CollapsibleContent>
+    </Collapsible>
   )
 }
