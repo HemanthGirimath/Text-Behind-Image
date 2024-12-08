@@ -135,9 +135,8 @@ function EditorPageContent() {
   const handleDownload = useCallback(async (format: 'png' | 'jpeg' = 'png', quality: number = 1) => {
     try {
       const container = document.querySelector('.result-display-container');
-      const img = container?.querySelector('img');
-      if (!container || !img) {
-        console.error('Container or image not found');
+      if (!container || !(container instanceof HTMLElement)) {
+        console.error('Container not found or not an HTMLElement');
         setError('Failed to find image container');
         return;
       }
