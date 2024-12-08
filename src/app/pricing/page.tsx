@@ -30,199 +30,120 @@ function Feature({ children, available }: FeatureProps) {
 }
 
 export default function PricingPage() {
-  const [isLoading, setIsLoading] = useState<'pro' | 'enterprise' | null>(null);
   const { toast } = useToast();
   const { state } = useUser();
+  const [loading, setLoading] = useState(false);
 
-  const handlePayment = async (planType: 'pro' | 'enterprise') => {
+  const handleSubscribe = async (plan: 'basic' | 'premium') => {
     if (!state?.user?.email) {
       toast({
-        title: "Not logged in",
-        description: "Please log in to upgrade your plan",
+        title: "Login Required",
+        description: "Please login to subscribe to a plan",
         variant: "destructive",
       });
       return;
     }
 
-    // Store user email to ensure it's available throughout the function
-    const userEmail = state.user.email;
-
+    setLoading(true);
     try {
-      setIsLoading(planType);
-      const order = await createOrder(planType);
-
-      const options = {
-        key: order.keyId,
-        amount: order.amount,
-        currency: order.currency,
-        name: 'Manga Reading',
-        description: `${planType.charAt(0).toUpperCase() + planType.slice(1)} Plan Subscription`,
-        order_id: order.orderId,
-        handler: async function (response: any) {
-          try {
-            const verificationResponse = await fetch('/api/verify-payment', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                orderId: response.razorpay_order_id,
-                paymentId: response.razorpay_payment_id,
-                signature: response.razorpay_signature,
-                email: userEmail,
-              }),
-            });
-
-            const data = await verificationResponse.json();
-
-            if (data.verified) {
-              toast({
-                title: "Payment successful",
-                description: `You have been upgraded to ${planType} plan`,
-              });
-            } else {
-              toast({
-                title: "Payment verification failed",
-                description: data.error || "Please contact support",
-                variant: "destructive",
-              });
-            }
-          } catch (error) {
-            toast({
-              title: "Error",
-              description: "Failed to verify payment",
-              variant: "destructive",
-            });
-          }
-        },
-        prefill: {
-          email: userEmail,
-        },
-        theme: {
-          color: '#10b981',
-        },
-      };
-
-      const paymentObject = new (window as any).Razorpay(options);
-      paymentObject.open();
+      const order = await createOrder(plan);
+      if (order.url) {
+        window.location.href = order.url;
+      }
     } catch (error) {
       toast({
         title: "Error",
-        description: "Failed to create payment order",
+        description: "Failed to create subscription",
         variant: "destructive",
       });
     } finally {
-      setIsLoading(null);
+      setLoading(false);
     }
   };
 
   return (
-    <div className="container py-8 md:py-20 px-4 md:px-6">
-      <div className="text-center mb-8 md:mb-16">
-        <h1 className="text-3xl md:text-4xl font-bold mb-2 md:mb-4">Simple, transparent pricing</h1>
-        <p className="text-lg md:text-xl text-muted-foreground">
-          Choose the plan that best suits your reading needs
+    <div className="py-12 px-4 md:px-6 lg:px-8">
+      <div className="mx-auto max-w-7xl text-center">
+        <h2 className="text-3xl font-bold tracking-tight sm:text-4xl">Choose your plan</h2>
+        <p className="mt-4 text-lg text-muted-foreground">
+          Select the perfect plan for your needs
         </p>
       </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-8 max-w-6xl mx-auto">
+      <div className="mx-auto mt-16 grid max-w-5xl grid-cols-1 gap-8 lg:grid-cols-3">
         {/* Free Tier */}
-        <div className="relative rounded-2xl bg-background p-6 md:p-8 shadow-lg border border-border hover:shadow-xl transition-shadow">
-          <div className="mb-6 md:mb-8">
-            <h3 className="text-xl md:text-2xl font-bold mb-2">Free</h3>
-            <p className="text-sm md:text-base text-muted-foreground">Perfect for getting started</p>
-            <div className="mt-4 flex items-baseline">
-              <span className="text-3xl md:text-4xl font-bold">₹0</span>
-              <span className="text-muted-foreground ml-2">/month</span>
+        <div className="flex flex-col justify-between rounded-3xl bg-card p-8 ring-1 ring-muted/10 sm:p-10">
+          <div>
+            <h3 className="text-base font-semibold leading-7 text-primary">Free</h3>
+            <div className="mt-4 flex items-baseline gap-x-2">
+              <span className="text-5xl font-bold tracking-tight">$0</span>
+              <span className="text-base text-muted-foreground">/month</span>
             </div>
+            <ul role="list" className="mt-8 space-y-3">
+              <Feature available={true}>3 image generations per month</Feature>
+              <Feature available={true}>5 basic fonts</Feature>
+              <Feature available={true}>Basic text editing</Feature>
+              <Feature available={false}>Image adjustments</Feature>
+              <Feature available={false}>Multiple text layers</Feature>
+              <Feature available={false}>AI features</Feature>
+            </ul>
           </div>
-          <ul className="space-y-3 md:space-y-4 mb-6 md:mb-8">
-            <Feature available>Access to free manga</Feature>
-            <Feature available>Basic reading features</Feature>
-            <Feature available>Standard quality</Feature>
-            <Feature>Ad-free experience</Feature>
-            <Feature>Offline reading</Feature>
-            <Feature>Early access</Feature>
-          </ul>
-          <Link 
-            href="/manga" 
-            className="block w-full py-4 md:py-3 px-6 rounded-lg text-center text-base md:text-sm bg-primary text-primary-foreground hover:bg-primary/90 transition-colors touch-manipulation"
+          <Link
+            href="/signup"
+            className="mt-8 block rounded-md bg-primary px-3 py-2 text-center text-sm font-semibold text-primary-foreground shadow-sm hover:bg-primary/90"
           >
-            Get Started
+            Get started for free
           </Link>
         </div>
 
-        {/* Pro Tier */}
-        <div className="relative rounded-2xl bg-background p-6 md:p-8 shadow-lg border border-border hover:shadow-xl transition-shadow">
-          <div className="absolute -top-3 md:-top-5 right-4 md:right-8">
-            <span className="bg-primary px-3 py-1 text-sm rounded-full text-primary-foreground">
-              Popular
-            </span>
-          </div>
-          <div className="mb-6 md:mb-8">
-            <h3 className="text-xl md:text-2xl font-bold mb-2">Pro</h3>
-            <p className="text-sm md:text-base text-muted-foreground">Perfect for manga enthusiasts</p>
-            <div className="mt-4 flex items-baseline">
-              <span className="text-3xl md:text-4xl font-bold">₹299</span>
-              <span className="text-muted-foreground ml-2">/month</span>
+        {/* Basic Tier */}
+        <div className="flex flex-col justify-between rounded-3xl bg-card p-8 ring-1 ring-primary/30 sm:p-10">
+          <div>
+            <h3 className="text-base font-semibold leading-7 text-primary">Basic</h3>
+            <div className="mt-4 flex items-baseline gap-x-2">
+              <span className="text-5xl font-bold tracking-tight">$9</span>
+              <span className="text-base text-muted-foreground">/month</span>
             </div>
-            <p className="text-sm text-muted-foreground mt-2">Billed monthly</p>
+            <ul role="list" className="mt-8 space-y-3">
+              <Feature available={true}>Unlimited image generations</Feature>
+              <Feature available={true}>All fonts</Feature>
+              <Feature available={true}>Advanced text editing</Feature>
+              <Feature available={true}>Image adjustments</Feature>
+              <Feature available={true}>Multiple text layers</Feature>
+              <Feature available={false}>AI features</Feature>
+            </ul>
           </div>
-          <ul className="space-y-3 md:space-y-4 mb-6 md:mb-8">
-            <Feature available>Everything in Free</Feature>
-            <Feature available>Ad-free experience</Feature>
-            <Feature available>HD quality</Feature>
-            <Feature available>Offline reading</Feature>
-            <Feature available>Early access</Feature>
-            <Feature>Custom reading lists</Feature>
-          </ul>
-          <button 
-            onClick={() => handlePayment('pro')}
-            disabled={isLoading === 'pro'}
-            className={`block w-full py-4 md:py-3 px-6 rounded-lg text-center text-base md:text-sm bg-primary text-primary-foreground hover:bg-primary/90 transition-colors touch-manipulation ${
-              isLoading === 'pro' ? 'opacity-50 cursor-not-allowed' : ''
-            }`}
+          <button
+            onClick={() => handleSubscribe('basic')}
+            disabled={loading}
+            className="mt-8 block w-full rounded-md bg-primary px-3 py-2 text-center text-sm font-semibold text-primary-foreground shadow-sm hover:bg-primary/90 disabled:opacity-50"
           >
-            {isLoading === 'pro' ? 'Processing...' : 'Upgrade to Pro'}
+            {loading ? 'Processing...' : 'Subscribe to Basic'}
           </button>
         </div>
 
-        {/* Enterprise Tier */}
-        <div className="relative rounded-2xl bg-background p-6 md:p-8 shadow-lg border border-border hover:shadow-xl transition-shadow">
-          <div className="absolute -top-3 md:-top-5 right-4 md:right-8">
-            <span className="bg-secondary px-3 py-1 text-sm rounded-full">
-              Best Value
-            </span>
-          </div>
-          <div className="mb-6 md:mb-8">
-            <h3 className="text-xl md:text-2xl font-bold mb-2">Enterprise</h3>
-            <p className="text-sm md:text-base text-muted-foreground">For the ultimate experience</p>
-            <div className="mt-4 flex items-baseline">
-              <span className="text-3xl md:text-4xl font-bold">₹499</span>
-              <span className="text-muted-foreground ml-2">/month</span>
+        {/* Premium Tier */}
+        <div className="flex flex-col justify-between rounded-3xl bg-card p-8 ring-1 ring-muted/10 sm:p-10">
+          <div>
+            <h3 className="text-base font-semibold leading-7 text-primary">Premium</h3>
+            <div className="mt-4 flex items-baseline gap-x-2">
+              <span className="text-5xl font-bold tracking-tight">$19</span>
+              <span className="text-base text-muted-foreground">/month</span>
             </div>
-            <p className="text-sm text-muted-foreground mt-2">
-              Save 20% with annual billing
-            </p>
+            <ul role="list" className="mt-8 space-y-3">
+              <Feature available={true}>Everything in Basic</Feature>
+              <Feature available={true}>AI background removal</Feature>
+              <Feature available={true}>AI image enhancement</Feature>
+              <Feature available={true}>Priority support</Feature>
+              <Feature available={true}>Early access to new features</Feature>
+            </ul>
           </div>
-          <ul className="space-y-3 md:space-y-4 mb-6 md:mb-8">
-            <Feature available>Everything in Pro</Feature>
-            <Feature available>Early access to new manga</Feature>
-            <Feature available>Custom reading lists</Feature>
-            <Feature available>Priority support</Feature>
-            <Feature available>Exclusive content</Feature>
-            <Feature available>API access</Feature>
-          </ul>
           <button
-            onClick={() => handlePayment('enterprise')}
-            disabled={isLoading === 'enterprise'}
-            className={`block w-full py-4 md:py-3 px-6 rounded-lg text-center text-base md:text-sm bg-primary text-primary-foreground hover:bg-primary/90 transition-colors touch-manipulation ${
-              isLoading === 'enterprise' ? 'opacity-50 cursor-not-allowed' : ''
-            }`}
+            onClick={() => handleSubscribe('premium')}
+            disabled={loading}
+            className="mt-8 block w-full rounded-md bg-primary px-3 py-2 text-center text-sm font-semibold text-primary-foreground shadow-sm hover:bg-primary/90 disabled:opacity-50"
           >
-            {isLoading === 'enterprise' ? 'Processing...' : 'Upgrade to Enterprise'}
+            {loading ? 'Processing...' : 'Subscribe to Premium'}
           </button>
-          <p className="text-sm text-muted-foreground text-center mt-4">
-            Contact us for custom enterprise solutions
-          </p>
         </div>
       </div>
     </div>
