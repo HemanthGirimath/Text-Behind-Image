@@ -1,5 +1,5 @@
 import { NextAuthOptions } from "next-auth";
-import { PrismaAdapter } from "@auth/prisma-adapter";
+import { PrismaAdapter } from "@next-auth/prisma-adapter";
 import { Adapter } from "next-auth/adapters";
 import CredentialsProvider from "next-auth/providers/credentials";
 import GoogleProvider from "next-auth/providers/google";
@@ -42,6 +42,7 @@ export const authOptions: NextAuthOptions = {
   },
   pages: {
     signIn: "/login",
+    error: "/login",
   },
   providers: [
     GoogleProvider({
@@ -55,33 +56,38 @@ export const authOptions: NextAuthOptions = {
         password: { label: "Password", type: "password" },
       },
       async authorize(credentials) {
-        if (!credentials?.email || !credentials?.password) {
+        try {
+          if (!credentials?.email || !credentials?.password) {
+            return null;
+          }
+
+          const user = await prisma.user.findUnique({
+            where: {
+              email: credentials.email,
+            },
+          });
+
+          if (!user || !user.password) {
+            return null;
+          }
+
+          const isPasswordValid = await compare(credentials.password, user.password);
+
+          if (!isPasswordValid) {
+            return null;
+          }
+
+          return {
+            id: user.id,
+            email: user.email,
+            name: user.name,
+            plan: user.plan,
+            image: user.image
+          };
+        } catch (error) {
+          console.error('Auth error:', error);
           return null;
         }
-
-        const user = await prisma.user.findUnique({
-          where: {
-            email: credentials.email,
-          },
-        });
-
-        if (!user) {
-          return null;
-        }
-
-        const isPasswordValid = await compare(credentials.password, user.password);
-
-        if (!isPasswordValid) {
-          return null;
-        }
-
-        return {
-          id: user.id,
-          email: user.email,
-          name: user.name,
-          plan: user.plan,
-          image: user.image
-        };
       },
     }),
   ],

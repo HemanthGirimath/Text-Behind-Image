@@ -52,49 +52,57 @@ export const DEFAULT_TEXT_STYLE: TextStyle = {
 export type PlanType = 'free' | 'basic' | 'premium';
 
 export type FeatureType = 
-  // Free Plan
   | 'basic_text'
-  | 'basic_fonts'
-  | 'font_size'
-  | 'letter_spacing'
   | 'basic_position'
-  | 'basic_color'
-  | 'text_alignment'
-  // Basic Plan
-  | 'text_styles'
-  | 'opacity'
-  | 'rotation'
-  // Premium Plan
-  | 'shadows'
-  | 'gradients'
-  | 'glow'
-  | 'outlines'
-  | 'transform'
-  | 'unlimited_layers';
+  | 'font_customization'
+  | 'text_effects'
+  | 'advanced_effects'
+  | 'background_removal'
+  | 'export_options'
+  | 'templates'
+  | 'priority_support';
+
+export const PLAN_PRICES = {
+  free: 0,
+  basic: 900,  // ₹900
+  premium: 1900 // ₹1900
+};
 
 export const PLAN_FEATURES: Record<PlanType, FeatureType[]> = {
   free: [
     'basic_text',
-    'basic_position',
-    'basic_fonts',
-    'font_size',
-    'letter_spacing',
-    'basic_color',
-    'text_alignment'
+    'basic_position'
   ],
   basic: [
-    'text_styles',
-    'opacity',
-    'rotation'
+    'basic_text',
+    'basic_position',
+    'font_customization',
+    'text_effects',
+    'background_removal'
   ],
   premium: [
-    'shadows',
-    'gradients',
-    'glow',
-    'outlines',
-    'transform',
-    'unlimited_layers'
+    'basic_text',
+    'basic_position',
+    'font_customization',
+    'text_effects',
+    'advanced_effects',
+    'background_removal',
+    'export_options',
+    'templates',
+    'priority_support'
   ]
+};
+
+export const FEATURE_DESCRIPTIONS: Record<FeatureType, string> = {
+  basic_text: 'Add and edit text',
+  basic_position: 'Basic text positioning',
+  font_customization: 'Custom fonts and sizes',
+  text_effects: 'Basic text effects (shadow, outline)',
+  advanced_effects: 'Advanced effects (gradient, glow, transforms)',
+  background_removal: 'Background removal tool',
+  export_options: 'Multiple export formats',
+  templates: 'Premium templates',
+  priority_support: 'Priority customer support'
 };
 
 export type { TextStyle };

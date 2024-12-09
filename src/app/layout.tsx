@@ -1,9 +1,10 @@
 import type { Metadata } from "next";
 import localFont from "next/font/local";
 import "./globals.css";
-import Navbar from "../components/navbar";
+import Navbar from "@/components/navbar";
 import { Toaster } from "@/components/UI/toaster";
 import { SpeedInsights } from '@vercel/speed-insights/next';
+import Script from 'next/script';
 import { Providers } from "@/components/providers";
 
 const geistSans = localFont({
@@ -26,6 +27,8 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" suppressHydrationWarning>
+      <head>
+      </head>
       <body className={`${geistSans.variable} ${geistMono.variable} container mx-auto`}>
         <Providers>
           <Navbar />
@@ -33,7 +36,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <SpeedInsights />
         </Providers>
         <Toaster />
-        <script async src="https://checkout.razorpay.com/v1/checkout.js"></script>
+        <Script async src="https://checkout.razorpay.com/v1/checkout.js" />
       </body>
     </html>
   );

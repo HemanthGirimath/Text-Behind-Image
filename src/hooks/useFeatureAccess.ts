@@ -1,5 +1,5 @@
 import { useSession } from 'next-auth/react';
-import { PLAN_FEATURES, PlanType, FeatureType } from '@/lib/plans';
+import { PLAN_FEATURES, PLAN_PRICES, PlanType, FeatureType } from '@/lib/plans';
 
 // Plan-specific configurations
 const PLAN_CONFIGS = {
@@ -35,42 +35,48 @@ export function useFeatureAccess() {
         return plan as PlanType;
       }
     }
-    return 'premium'; // Default to premium if feature is not found
+    return 'premium';
   };
 
-  const canUseFeature = (feature: FeatureType) => {
+  const getUpgradeInfo = (feature: FeatureType) => {
+    const requiredPlan = getPlanForFeature(feature);
+    const currentPlanIndex = ['free', 'basic', 'premium'].indexOf(userPlan);
+    const requiredPlanIndex = ['free', 'basic', 'premium'].indexOf(requiredPlan);
+    
+    if (currentPlanIndex >= requiredPlanIndex) return null;
+    
+    return {
+      plan: requiredPlan,
+      price: PLAN_PRICES[requiredPlan],
+      features: PLAN_FEATURES[requiredPlan]
+    };
+  };
+
+  const canUseFeature = (feature: FeatureType): boolean => {
     if (feature === 'basic_text') return true;
     
-    // Check if the feature is available in the current plan or higher plans
-    for (const [plan, features] of Object.entries(PLAN_FEATURES)) {
-      if (features.includes(feature)) {
-        // If the feature is found in the current plan or a lower tier plan, allow access
-        if (
-          (userPlan === 'premium') ||
-          (userPlan === 'basic' && plan !== 'premium') ||
-          (userPlan === 'free' && plan === 'free')
-        ) {
-          return true;
-        }
-      }
-    }
-    return false;
+    const planOrder = { premium: 3, basic: 2, free: 1 };
+    const requiredPlan = getPlanForFeature(feature);
+    
+    return planOrder[userPlan] >= planOrder[requiredPlan];
   };
 
-  const getMaxTextLayers = () => {
-    return PLAN_CONFIGS[userPlan].maxTextLayers;
-  };
+  const getConfig = () => PLAN_CONFIGS[userPlan];
 
-  const getAvailableFonts = () => {
-    return PLAN_CONFIGS[userPlan].fonts;
+  const isFeatureUnlocked = (feature: FeatureType): boolean => {
+    const planOrder = { premium: 3, basic: 2, free: 1 };
+    const requiredPlan = getPlanForFeature(feature);
+    return planOrder[userPlan] >= planOrder[requiredPlan];
   };
 
   return {
+    userPlan,
     hasAccess,
     canUseFeature,
-    getMaxTextLayers,
-    getAvailableFonts,
     getPlanForFeature,
-    userPlan
+    getUpgradeInfo,
+    getConfig,
+    isFeatureUnlocked,
+    planConfig: PLAN_CONFIGS[userPlan]
   };
 }

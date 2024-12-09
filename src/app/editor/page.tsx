@@ -10,7 +10,8 @@ import { ImageAdjustments as ImageAdjuster, defaultAdjustments } from '../textBe
 import { TextEditor } from '../textBehindImage/textEditor'
 import { TextStyle } from '@/lib/types'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/UI/tabs'
-import { removeBackground } from '@imgly/background-removal'
+import { removeBackground } from '@/lib/background-removal'
+import { useToast } from '@/components/UI/use-toast'
 import { AuthGuard } from '@/components/auth-guard'
 import {
   DropdownMenu,
@@ -18,9 +19,21 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/UI/drop-down"
-import { DEFAULT_TEXT_STYLE } from '@/lib/plans'
+import { DEFAULT_TEXT_STYLE, FeatureType } from '@/lib/plans'
+import { useSession } from 'next-auth/react'
+import { hasPermission } from '@/lib/permissions'
+
 
 function EditorPageContent() {
+  const { data: session } = useSession()
+  const { toast } = useToast()
+  const userPlan = session?.user?.plan || 'free'
+
+  const canUseFeature = (feature: FeatureType) => {
+    return hasPermission(userPlan, feature)
+  }
+
+  const [imageFile, setImageFile] = useState<File | null>(null)
   const [image, setImage] = useState<string | null>(null)
   const [processedImage, setProcessedImage] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -28,9 +41,9 @@ function EditorPageContent() {
   const [textStyles, setTextStyles] = useState<TextStyle[]>([])
   const [selectedTextId, setSelectedTextId] = useState<string | null>(null)
   const [imageAdjustments, setImageAdjustments] = useState(defaultAdjustments)
-  const [isSidebarOpen, setIsSidebarOpen] = useState(true)
 
   const handleImageUpload = useCallback(async (file: File) => {
+    setImageFile(file)
     const url = URL.createObjectURL(file)
     setImage(url)
     setProcessedImage(null)
@@ -38,33 +51,64 @@ function EditorPageContent() {
   }, [])
 
   const handleTextStyleChange = useCallback((style: Partial<TextStyle> & { id: string }) => {
+    if (!canUseFeature('font_customization') && 
+        (style.fontFamily !== DEFAULT_TEXT_STYLE.fontFamily || 
+         style.fontSize !== DEFAULT_TEXT_STYLE.fontSize)) {
+      toast({
+        title: 'Premium Feature',
+        description: 'Font customization is only available in paid plans. Please upgrade to use this feature.',
+        variant: 'destructive',
+      })
+      return
+    }
+
+    if (!canUseFeature('text_effects') && 
+        (style.shadow?.enabled || style.outline?.enabled)) {
+      toast({
+        title: 'Premium Feature',
+        description: 'Text effects are only available in paid plans. Please upgrade to use this feature.',
+        variant: 'destructive',
+      })
+      return
+    }
+
+    if (!canUseFeature('advanced_effects') && 
+        (style.gradient?.enabled || style.glow?.enabled || style.transform?.enabled)) {
+      toast({
+        title: 'Premium Feature',
+        description: 'Advanced effects are only available in premium plan. Please upgrade to use this feature.',
+        variant: 'destructive',
+      })
+      return
+    }
+
     setTextStyles(prevStyles => {
       if (style._delete) {
-        return prevStyles.filter(s => s.id !== style.id);
+        return prevStyles.filter(s => s.id !== style.id)
       }
-      const styleExists = prevStyles.some(s => s.id === style.id);
+      const styleExists = prevStyles.some(s => s.id === style.id)
       if (styleExists) {
-        return prevStyles.map(s => s.id === style.id ? { ...s, ...style } : s);
+        return prevStyles.map(s => s.id === style.id ? { ...s, ...style } : s)
       }
-      return [...prevStyles, { ...DEFAULT_TEXT_STYLE, ...style } as TextStyle];
-    });
-  }, [])
+      return [...prevStyles, { ...DEFAULT_TEXT_STYLE, ...style } as TextStyle]
+    })
+  }, [canUseFeature])
 
   const processImage = useCallback(async () => {
-    if (!image) return
+    if (!imageFile) return;
     try {
-      setLoading(true)
-      setError(null)
-      const response = await removeBackground(image)
-      const url = URL.createObjectURL(response)
-      setProcessedImage(url)
+      setLoading(true);
+      setError(null);
+      const blob = await removeBackground(imageFile);
+      const url = URL.createObjectURL(blob);
+      setProcessedImage(url);
     } catch (err) {
-      setError('Failed to process image. Please try again.')
-      console.error('Error processing image:', err)
+      setError('Failed to process image. Please try again.');
+      console.error('Error processing image:', err);
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }, [image])
+  }, [imageFile]);
 
   const renderText = useCallback((ctx: CanvasRenderingContext2D, style: TextStyle) => {
     ctx.save();
@@ -274,6 +318,7 @@ function EditorPageContent() {
   }, [image, processedImage, textStyles, imageAdjustments]);
 
   const resetImage = useCallback(() => {
+    setImageFile(null)
     setImage(null)
     setProcessedImage(null)
     setError(null)

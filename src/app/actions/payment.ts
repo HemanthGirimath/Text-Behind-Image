@@ -51,32 +51,54 @@ export async function verifyPayment(
   orderId: string,
   paymentId: string,
   signature: string,
-  userEmail: string
+  userId: string,
+  planType: 'basic' | 'premium'
 ): Promise<VerifyResponse> {
-  const text = orderId + '|' + paymentId;
-  const generated_signature = crypto
-    .createHmac('sha256', process.env.RAZORPAY_KEY_SECRET!)
-    .update(text)
-    .digest('hex');
+  try {
+    const headersList = headers();
+    const host = headersList.get('host');
 
-  if (generated_signature === signature) {
-    try {
-      // Get order details to know which plan was purchased
-      const order = await razorpay.orders.fetch(orderId);
-      const planType = order.amount === 90000 ? 'basic' : 'premium';
-      
-      // Update user plan in database
-      await prisma.user.update({
-        where: { email: userEmail },
-        data: { plan: planType },
-      });
+    // Verify payment signature
+    const body = orderId + '|' + paymentId;
+    const expectedSignature = crypto
+      .createHmac('sha256', process.env.RAZORPAY_KEY_SECRET!)
+      .update(body)
+      .digest('hex');
 
-      return { verified: true };
-    } catch (error) {
-      console.error('Error updating user plan:', error);
-      return { verified: false, error: 'Failed to update user plan' };
+    const isValid = expectedSignature === signature;
+
+    if (!isValid) {
+      return { verified: false, error: 'Invalid payment signature' };
     }
+
+    // Update user's plan in database
+    const planEndDate = new Date();
+    planEndDate.setDate(planEndDate.getDate() + 30); // 30 days subscription
+
+    await prisma.user.update({
+      where: { id: userId },
+      data: {
+        plan: planType,
+        planStartDate: new Date(),
+        planEndDate: planEndDate,
+      },
+    });
+
+    // Create payment record
+    await prisma.payment.create({
+      data: {
+        userId,
+        orderId,
+        paymentId,
+        amount: planType === 'basic' ? 900 : 1900,
+        planType,
+        status: 'completed'
+      }
+    });
+
+    return { verified: true };
+  } catch (error) {
+    console.error('Payment verification error:', error);
+    return { verified: false, error: 'Payment verification failed' };
   }
-  
-  return { verified: false, error: 'Invalid payment signature' };
 }

@@ -32,29 +32,28 @@ export default function LoginPage() {
       const password = formData.get('password') as string
 
       const result = await signIn('credentials', {
-        redirect: false,
         email,
         password,
+        redirect: false,
       })
 
-      if (result?.error) {
+      if (!result?.ok) {
         toast({
           variant: "destructive",
-          title: "Error",
-          description: result.error
+          title: "Login Failed",
+          description: result?.error || "Invalid email or password"
         })
         setIsLoading(false)
         return
       }
 
-      // Successful login
       router.push('/editor')
       router.refresh()
-    } catch (error) {
+    } catch (error: any) {
       toast({
         variant: "destructive",
         title: "Error",
-        description: "An error occurred during login"
+        description: error?.message || "Something went wrong"
       })
     } finally {
       setIsLoading(false)
