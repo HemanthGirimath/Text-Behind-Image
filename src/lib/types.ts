@@ -21,6 +21,10 @@ export interface TextStyle {
   };
 
   // Premium Plan Features
+  effects?: {
+    enabled: boolean;
+    type: 'shadow' | 'glow' | 'outline';
+  };
   shadow?: {
     enabled: boolean;
     blur: number;

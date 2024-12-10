@@ -19,19 +19,39 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/UI/drop-down"
-import { DEFAULT_TEXT_STYLE, FeatureType } from '@/lib/plans'
+import { DEFAULT_TEXT_STYLE, FeatureType, PLAN_FEATURES } from '@/lib/plans'
 import { useSession } from 'next-auth/react'
 import { hasPermission } from '@/lib/permissions'
 
 
 function EditorPageContent() {
-  const { data: session } = useSession()
+  const { data: session, status } = useSession()
   const { toast } = useToast()
   const userPlan = session?.user?.plan || 'free'
-
-  const canUseFeature = (feature: FeatureType) => {
+  
+  // Check if user is actually authenticated
+  const isAuthenticated = status === 'authenticated' && session?.user
+  
+  const canUseFeature = (feature: FeatureType): boolean => {
+    // Always allow free features
+    if (PLAN_FEATURES.free.includes(feature as any)) {
+      return true;
+    }
+    
+    // For other features, check the user's plan
     return hasPermission(userPlan, feature)
   }
+
+  // Show authentication warning if needed
+  useEffect(() => {
+    if (status === 'unauthenticated') {
+      toast({
+        title: 'Limited Access',
+        description: 'You are using the free version. Sign in to access more features.',
+        variant: 'default',
+      })
+    }
+  }, [status, toast])
 
   const [imageFile, setImageFile] = useState<File | null>(null)
   const [image, setImage] = useState<string | null>(null)
@@ -51,32 +71,45 @@ function EditorPageContent() {
   }, [])
 
   const handleTextStyleChange = useCallback((style: Partial<TextStyle> & { id: string }) => {
-    if (!canUseFeature('font_customization') && 
+    // Check for basic features (Free plan)
+    if (!canUseFeature('basic-fonts')) {
+      toast({
+        title: 'Error',
+        description: 'Unable to access basic features. Please try refreshing the page.',
+        variant: 'destructive',
+      })
+      return
+    }
+
+    // Check for font customization (Basic plan feature)
+    if (!canUseFeature('unlimited-fonts') && 
         (style.fontFamily !== DEFAULT_TEXT_STYLE.fontFamily || 
          style.fontSize !== DEFAULT_TEXT_STYLE.fontSize)) {
       toast({
-        title: 'Premium Feature',
-        description: 'Font customization is only available in paid plans. Please upgrade to use this feature.',
+        title: 'Basic Plan Feature',
+        description: 'Font customization is only available in Basic plan or higher. Please upgrade to use this feature.',
         variant: 'destructive',
       })
       return
     }
 
-    if (!canUseFeature('text_effects') && 
+    // Check for basic effects (Premium plan feature)
+    if (!canUseFeature('shadows') && 
         (style.shadow?.enabled || style.outline?.enabled)) {
       toast({
         title: 'Premium Feature',
-        description: 'Text effects are only available in paid plans. Please upgrade to use this feature.',
+        description: 'Shadow and outline effects are only available in Premium plan. Please upgrade to use this feature.',
         variant: 'destructive',
       })
       return
     }
 
-    if (!canUseFeature('advanced_effects') && 
+    // Check for advanced effects (Premium plan feature)
+    if (!canUseFeature('gradients') && 
         (style.gradient?.enabled || style.glow?.enabled || style.transform?.enabled)) {
       toast({
         title: 'Premium Feature',
-        description: 'Advanced effects are only available in premium plan. Please upgrade to use this feature.',
+        description: 'Gradients, glow, and transform effects are only available in Premium plan. Please upgrade to use this feature.',
         variant: 'destructive',
       })
       return

@@ -1,27 +1,26 @@
 import { NextAuthOptions } from "next-auth";
 import { PrismaAdapter } from "@next-auth/prisma-adapter";
-import { Adapter } from "next-auth/adapters";
+import { prisma } from "./prisma";
 import CredentialsProvider from "next-auth/providers/credentials";
-import GoogleProvider from "next-auth/providers/google";
-import { prisma } from "@/lib/prisma";
-import { compare } from "bcrypt";
+import bcrypt from "bcryptjs";
+import { User } from "@prisma/client";
 
+// Extend the built-in session types
 declare module "next-auth" {
   interface Session {
     user: {
       id: string;
       email: string;
-      name: string;
-      plan: string;
-      image?: string | null;
+      name: string | null;
+      plan: string; // Current subscription plan
     }
   }
+
   interface User {
     id: string;
     email: string;
-    name: string;
+    name: string | null;
     plan: string;
-    image?: string | null;
   }
 }
 
@@ -29,104 +28,85 @@ declare module "next-auth/jwt" {
   interface JWT {
     id: string;
     email: string;
-    name: string;
+    name: string | null;
     plan: string;
-    image?: string | null;
   }
 }
 
 export const authOptions: NextAuthOptions = {
-  adapter: PrismaAdapter(prisma) as Adapter,
+  adapter: PrismaAdapter(prisma),
   session: {
-    strategy: "jwt",
-  },
-  pages: {
-    signIn: "/login",
-    error: "/login",
+    strategy: "jwt"
   },
   providers: [
-    GoogleProvider({
-      clientId: process.env.GOOGLE_CLIENT_ID!,
-      clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
-    }),
     CredentialsProvider({
-      name: "Credentials",
+      name: "credentials",
       credentials: {
-        email: { label: "Email", type: "email" },
-        password: { label: "Password", type: "password" },
+        email: { label: "Email", type: "text", placeholder: "jsmith@example.com" },
+        password: { label: "Password", type: "password" }
       },
       async authorize(credentials) {
-        try {
-          if (!credentials?.email || !credentials?.password) {
-            return null;
-          }
-
-          const user = await prisma.user.findUnique({
-            where: {
-              email: credentials.email,
-            },
-          });
-
-          if (!user || !user.password) {
-            return null;
-          }
-
-          const isPasswordValid = await compare(credentials.password, user.password);
-
-          if (!isPasswordValid) {
-            return null;
-          }
-
-          return {
-            id: user.id,
-            email: user.email,
-            name: user.name,
-            plan: user.plan,
-            image: user.image
-          };
-        } catch (error) {
-          console.error('Auth error:', error);
+        if (!credentials?.email || !credentials?.password) {
           return null;
         }
-      },
-    }),
+
+        const user = await prisma.user.findUnique({
+          where: {
+            email: credentials.email
+          },
+          select: {
+            id: true,
+            email: true,
+            name: true,
+            password: true,
+            plan: true
+          }
+        });
+
+        if (!user || !user.password) {
+          return null;
+        }
+
+        const isPasswordValid = await bcrypt.compare(
+          credentials.password,
+          user.password
+        );
+
+        if (!isPasswordValid) {
+          return null;
+        }
+
+        return {
+          id: user.id,
+          email: user.email || "",
+          name: user.name,
+          plan: user.plan || "free"
+        };
+      }
+    })
   ],
   callbacks: {
-    async session({ token, session }) {
-      if (token && session.user) {
+    async jwt({ token, user }) {
+      if (user) {
+        token.id = user.id;
+        token.email = user.email;
+        token.name = user.name;
+        token.plan = user.plan;
+      }
+      return token;
+    },
+    async session({ session, token }) {
+      if (token) {
         session.user.id = token.id;
-        session.user.name = token.name;
         session.user.email = token.email;
+        session.user.name = token.name;
         session.user.plan = token.plan;
-        session.user.image = token.image;
       }
       return session;
-    },
-    async jwt({ token, user, account, trigger, session }) {
-      if (trigger === "update" && session?.user) {
-        return { ...token, ...session.user };
-      }
-
-      if (account && user) {
-        token.id = user.id;
-        token.plan = user.plan;
-        token.image = user.image;
-        return token;
-      }
-
-      const dbUser = await prisma.user.findUnique({
-        where: { id: token.id }
-      });
-
-      if (!dbUser) return token;
-
-      return {
-        ...token,
-        name: dbUser.name,
-        email: dbUser.email,
-        plan: dbUser.plan,
-        image: dbUser.image
-      };
-    },
+    }
   },
+  pages: {
+    signIn: '/login',
+    error: '/login'
+  }
 };

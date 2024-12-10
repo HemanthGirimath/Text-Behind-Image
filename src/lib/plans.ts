@@ -2,7 +2,6 @@ import { TextStyle } from './types'
 
 export const DEFAULT_TEXT_STYLE: TextStyle = {
   id: '',
-  // Free Plan Features
   text: '',
   x: 50,
   y: 50,
@@ -51,58 +50,141 @@ export const DEFAULT_TEXT_STYLE: TextStyle = {
 
 export type PlanType = 'free' | 'basic' | 'premium';
 
+export type SectionType = 'basic-text' | 'text-styling' | 'advanced-styling' | 'effects';
+
+// Define the sections available in each plan
+export const PLAN_SECTIONS: Record<PlanType, SectionType[]> = {
+  free: ['basic-text'],
+  basic: ['basic-text', 'text-styling'],
+  premium: ['basic-text', 'text-styling', 'advanced-styling', 'effects']
+} as const;
+
 export type FeatureType = 
-  | 'basic_text'
-  | 'basic_position'
-  | 'font_customization'
-  | 'text_effects'
-  | 'advanced_effects'
-  | 'background_removal'
-  | 'export_options'
-  | 'templates'
-  | 'priority_support';
+  | 'text-input'           // Basic text input
+  | 'basic-fonts'          // 5 basic fonts
+  | 'positioning'          // x, y coordinates
+  | 'basic-colors'         // Basic color selection
+  | 'single-layer'         // Single text layer
+  | 'unlimited-fonts'      // Unlimited fonts (Basic+)
+  | 'multiple-layers'      // Multiple text layers (Basic+)
+  | 'bold'                 // Text styling (Basic+)
+  | 'italic'               // Text styling (Basic+)
+  | 'underline'           // Text styling (Basic+)
+  | 'letter-spacing'      // Letter spacing (Basic+)
+  | 'opacity'             // Opacity control (Basic+)
+  | 'alignment'           // Text alignment (Basic+)
+  | 'rotation'            // Rotation (Basic+)
+  | 'shadows'             // Shadow effects (Premium)
+  | 'gradients'           // Gradient effects (Premium)
+  | 'glow'                // Glow effects (Premium)
+  | 'outlines'            // Outline effects (Premium)
+  | 'transform';          // Transform options (Premium)
+
+// Define features available in each plan
+export const PLAN_FEATURES: Record<PlanType, FeatureType[]> = {
+  free: [
+    'text-input',
+    'basic-fonts',
+    'positioning',
+    'basic-colors',
+    'single-layer'
+  ],
+  basic: [
+    'text-input',
+    'basic-fonts',
+    'positioning',
+    'basic-colors',
+    'single-layer',
+    'unlimited-fonts',
+    'multiple-layers',
+    'bold',
+    'italic',
+    'underline',
+    'letter-spacing',
+    'opacity',
+    'alignment',
+    'rotation'
+  ],
+  premium: [
+    'text-input',
+    'basic-fonts',
+    'positioning',
+    'basic-colors',
+    'single-layer',
+    'unlimited-fonts',
+    'multiple-layers',
+    'bold',
+    'italic',
+    'underline',
+    'letter-spacing',
+    'opacity',
+    'alignment',
+    'rotation',
+    'shadows',
+    'gradients',
+    'glow',
+    'outlines',
+    'transform'
+  ]
+} as const;
+
+export const FEATURE_DESCRIPTIONS: Record<FeatureType, string> = {
+  'text-input': 'Basic text input',
+  'basic-fonts': '5 basic fonts',
+  'positioning': 'Simple positioning (x, y coordinates)',
+  'basic-colors': 'Basic color selection',
+  'single-layer': 'Single text layer',
+  'unlimited-fonts': 'Unlimited fonts',
+  'multiple-layers': 'Multiple text layers (up to 3)',
+  'bold': 'Bold text styling',
+  'italic': 'Italic text styling',
+  'underline': 'Underline text styling',
+  'letter-spacing': 'Letter spacing control',
+  'opacity': 'Opacity control',
+  'alignment': 'Text alignment options',
+  'rotation': 'Rotation control',
+  'shadows': 'Shadow effects',
+  'gradients': 'Gradient effects',
+  'glow': 'Glow effects',
+  'outlines': 'Outline effects',
+  'transform': 'Transform options (skew, scale)'
+};
+
+// Define the features in each section
+export const SECTION_FEATURES: Record<SectionType, FeatureType[]> = {
+  'basic-text': [
+    'text-input',
+    'basic-fonts',
+    'positioning',
+    'basic-colors',
+    'single-layer'
+  ],
+  'text-styling': [
+    'unlimited-fonts',
+    'multiple-layers',
+    'bold',
+    'italic',
+    'underline',
+    'letter-spacing',
+    'opacity',
+    'alignment',
+    'rotation'
+  ],
+  'advanced-styling': [
+    'transform'
+  ],
+  'effects': [
+    'shadows',
+    'gradients',
+    'glow',
+    'outlines'
+  ]
+} as const;
 
 export const PLAN_PRICES = {
   free: 0,
-  basic: 900,  // ₹900
-  premium: 1900 // ₹1900
-};
-
-export const PLAN_FEATURES: Record<PlanType, FeatureType[]> = {
-  free: [
-    'basic_text',
-    'basic_position'
-  ],
-  basic: [
-    'basic_text',
-    'basic_position',
-    'font_customization',
-    'text_effects',
-    'background_removal'
-  ],
-  premium: [
-    'basic_text',
-    'basic_position',
-    'font_customization',
-    'text_effects',
-    'advanced_effects',
-    'background_removal',
-    'export_options',
-    'templates',
-    'priority_support'
-  ]
-};
-
-export const FEATURE_DESCRIPTIONS: Record<FeatureType, string> = {
-  basic_text: 'Add and edit text',
-  basic_position: 'Basic text positioning',
-  font_customization: 'Custom fonts and sizes',
-  text_effects: 'Basic text effects (shadow, outline)',
-  advanced_effects: 'Advanced effects (gradient, glow, transforms)',
-  background_removal: 'Background removal tool',
-  export_options: 'Multiple export formats',
-  templates: 'Premium templates',
-  priority_support: 'Priority customer support'
-};
+  basic: 10,
+  premium: 20
+} as const;
 
 export type { TextStyle };
