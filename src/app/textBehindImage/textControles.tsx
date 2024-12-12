@@ -35,33 +35,19 @@ export interface TextConfig {
 
 interface FeatureSectionProps {
   title: string
-  isLocked: boolean
   children: React.ReactNode
 }
 
-function FeatureSection({ title, isLocked, children }: FeatureSectionProps) {
+function FeatureSection({ title, children }: FeatureSectionProps) {
   return (
-    <div className={`relative rounded-lg border p-4 ${isLocked ? 'pointer-events-none' : ''}`}>
+    <div className="relative rounded-lg border p-4">
       <h3 className="text-sm font-medium mb-3">{title}</h3>
       {children}
-      {isLocked && (
-        <div className="absolute inset-0 bg-white/50 backdrop-blur-[2px] rounded-lg flex items-center justify-center">
-          <div className="flex items-center gap-2">
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m0 0v2m0-2h2m-2 0H8m13 0a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-            <span className="text-sm font-medium">Upgrade required</span>
-          </div>
-        </div>
-      )}
     </div>
   )
 }
 
 export function TextControls({ onTextChange, onRemoveBackground, isProcessing }: TextControlsProps) {
-  const { data: session } = useSession()
-  const userPlan = session?.user?.plan || 'free'
-
   const [config, setConfig] = useState<TextConfig>({
     text: 'Click to add text',
     font: 'Arial',
@@ -72,7 +58,7 @@ export function TextControls({ onTextChange, onRemoveBackground, isProcessing }:
     opacity: 100,
     italic: false,
     underline: false,
-    position: { x: 50, y: 50 } // Center of the image
+    position: { x: 50, y: 50 }
   })
 
   const updateConfig = (updates: Partial<TextConfig>) => {
@@ -83,8 +69,8 @@ export function TextControls({ onTextChange, onRemoveBackground, isProcessing }:
 
   return (
     <div className="bg-white p-4 rounded-lg shadow-lg space-y-4">
-      {/* Free Features */}
-      <FeatureSection title="Basic Text" isLocked={false}>
+      {/* Text Input */}
+      <FeatureSection title="Basic Text">
         <Input
           placeholder="Enter your text"
           value={config.text}
@@ -116,8 +102,8 @@ export function TextControls({ onTextChange, onRemoveBackground, isProcessing }:
         </div>
       </FeatureSection>
 
-      {/* Basic Plan Features */}
-      <FeatureSection title="Text Styling" isLocked={userPlan === 'free'}>
+      {/* Text Styling */}
+      <FeatureSection title="Text Styling">
         <div className="space-y-4">
           <div className="flex items-center gap-4">
             <span className="text-sm">Size</span>
@@ -153,8 +139,8 @@ export function TextControls({ onTextChange, onRemoveBackground, isProcessing }:
         </div>
       </FeatureSection>
 
-      {/* Premium Features */}
-      <FeatureSection title="Advanced Styling" isLocked={userPlan !== 'premium'}>
+      {/* Advanced Styling */}
+      <FeatureSection title="Advanced Styling">
         <div className="space-y-4">
           <div className="flex items-center gap-4">
             <span className="text-sm">Spacing</span>
@@ -209,15 +195,13 @@ export function TextControls({ onTextChange, onRemoveBackground, isProcessing }:
         </div>
       </FeatureSection>
 
-      <div className="mt-4">
-        <Button 
-          onClick={onRemoveBackground}
-          disabled={isProcessing}
-          className="w-full bg-gray-200 text-gray-800 hover:bg-gray-300"
-        >
-          {isProcessing ? 'Processing...' : 'Remove Background'}
-        </Button>
-      </div>
+      <Button 
+        className="w-full" 
+        onClick={onRemoveBackground}
+        disabled={isProcessing}
+      >
+        {isProcessing ? 'Processing...' : 'Remove Background'}
+      </Button>
     </div>
   )
 }

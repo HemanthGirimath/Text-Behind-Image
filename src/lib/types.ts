@@ -1,60 +1,41 @@
 export interface TextStyle {
   id: string;
-  
-  // Free Plan Features
   text: string;
-  fontFamily: string;
-  fontSize: number;
-  color: string;
   x: number;
   y: number;
-  letterSpacing: number;
-
-  // Basic Plan Features
-  opacity: number;
   rotation: number;
-  align: 'left' | 'center' | 'right';
+  opacity: number;
+  color: string;
+  fontFamily: string;
+  fontSize: number;
+  letterSpacing: number;
   style: {
     bold: boolean;
     italic: boolean;
     underline: boolean;
   };
-
-  // Premium Plan Features
-  effects?: {
+  // Basic plan features
+  shadow: {
     enabled: boolean;
-    type: 'shadow' | 'glow' | 'outline';
-  };
-  shadow?: {
-    enabled: boolean;
-    blur: number;
     color: string;
+    blur: number;
     offsetX: number;
     offsetY: number;
   };
-  gradient?: {
+  gradient: {
     enabled: boolean;
-    colors: string[];
+    startColor: string;
+    endColor: string;
+    angle: number;
   };
-  glow?: {
-    enabled: boolean;
-    blur: number;
-    color: string;
-    intensity: number;
-  };
-  outline?: {
-    enabled: boolean;
-    width: number;
-    color: string;
-  };
-  transform?: {
-    enabled: boolean;
-    scaleX: number;
-    scaleY: number;
+  transform: {
     skewX: number;
     skewY: number;
+    scale: number;
   };
-
-  // Other properties
-  _delete?: boolean;
+  // Premium plan features
+  effectTemplate?: string;
+  language?: string;
+  aiGenerated?: boolean;
+  blur: number;
 }

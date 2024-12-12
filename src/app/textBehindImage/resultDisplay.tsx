@@ -1,27 +1,25 @@
 'use client'
 
 import { useState, useRef, useEffect } from 'react'
-import { TextStyle } from '@/lib/plans'
+import { TextStyle } from '@/lib/types'
 import { ImageAdjustments } from './imageAdjustments'
 import Image from 'next/image'
+import { ImageIcon } from 'lucide-react'
+import { cn } from '@/lib/utils'
 
 interface ResultDisplayProps {
-  originalImage: string;
-  processedImage: string | null;
-  textStyles: TextStyle[];
-  selectedTextId: string | null;
-  imageAdjustments: ImageAdjustments;
-  onTextStyleChange: (style: TextStyle) => void;
-  onTextSelect: (id: string | null) => void;
+  originalImage: string
+  processedImage: string | null
+  textStyles: TextStyle[]
+  selectedTextId: string | null
+  imageAdjustments: ImageAdjustments
+  onTextStyleChange: (style: Partial<TextStyle> & { id: string }) => void
+  onTextSelect: (id: string) => void
 }
 
-function generateFilterString(adjustments: ImageAdjustments): string {
-  return `brightness(${adjustments.brightness}%) contrast(${adjustments.contrast}%) saturate(${adjustments.saturation}%) blur(${adjustments.blur}px) opacity(${adjustments.opacity}%)`
-}
-
-export function ResultDisplay({ 
-  originalImage, 
-  processedImage, 
+export function ResultDisplay({
+  originalImage,
+  processedImage,
   textStyles,
   selectedTextId,
   imageAdjustments,
@@ -31,150 +29,183 @@ export function ResultDisplay({
   const containerRef = useRef<HTMLDivElement>(null)
   const [isDragging, setIsDragging] = useState(false)
   const [dragStartPos, setDragStartPos] = useState({ x: 0, y: 0 })
+  const [showTextBox, setShowTextBox] = useState<boolean>(false)
 
-  const handleDragStart = (e: React.MouseEvent, textStyle: TextStyle) => {
+  // Hide text box after selection
+  useEffect(() => {
+    if (selectedTextId) {
+      setShowTextBox(true)
+      const timer = setTimeout(() => {
+        setShowTextBox(false)
+      }, 2000)
+      return () => clearTimeout(timer)
+    }
+  }, [selectedTextId])
+
+  const handleDragStart = (e: React.MouseEvent | React.TouchEvent, textStyle: TextStyle) => {
+    e.preventDefault() // Prevent default touch behavior
     e.stopPropagation()
+    if (!containerRef.current) return
+
     setIsDragging(true)
-    setDragStartPos({
-      x: e.clientX - (textStyle.x / 100) * containerRef.current!.offsetWidth,
-      y: e.clientY - (textStyle.y / 100) * containerRef.current!.offsetHeight
-    })
+    const pos = 'touches' in e ? {
+      x: e.touches[0].pageX,
+      y: e.touches[0].pageY
+    } : {
+      x: (e as React.MouseEvent).pageX,
+      y: (e as React.MouseEvent).pageY
+    }
+    setDragStartPos(pos)
     onTextSelect(textStyle.id)
   }
 
-  const handleDrag = (e: React.MouseEvent, textStyle: TextStyle) => {
-    if (!isDragging || !containerRef.current) return
+  const handleDrag = (e: MouseEvent | TouchEvent) => {
+    e.preventDefault() // Prevent scrolling on mobile
+    if (!isDragging || !containerRef.current || !selectedTextId) return
 
-    const container = containerRef.current
-    const newX = ((e.clientX - dragStartPos.x) / container.offsetWidth) * 100
-    const newY = ((e.clientY - dragStartPos.y) / container.offsetHeight) * 100
+    const rect = containerRef.current.getBoundingClientRect()
+    const pos = 'touches' in e ? {
+      x: e.touches[0].pageX,
+      y: e.touches[0].pageY
+    } : {
+      x: (e as MouseEvent).pageX,
+      y: (e as MouseEvent).pageY
+    }
 
-    onTextStyleChange({
-      ...textStyle,
-      x: Math.max(0, Math.min(100, newX)),
-      y: Math.max(0, Math.min(100, newY))
-    })
+    const deltaX = pos.x - dragStartPos.x
+    const deltaY = pos.y - dragStartPos.y
+
+    const selectedStyle = textStyles.find(style => style.id === selectedTextId)
+    if (selectedStyle) {
+      const newX = selectedStyle.x + (deltaX / rect.width) * 100
+      const newY = selectedStyle.y + (deltaY / rect.height) * 100
+
+      onTextStyleChange({
+        id: selectedStyle.id,
+        x: Math.max(0, Math.min(100, newX)),
+        y: Math.max(0, Math.min(100, newY))
+      })
+    }
+
+    setDragStartPos(pos)
   }
 
   const handleDragEnd = () => {
     setIsDragging(false)
   }
 
-  const handleTouchStart = (e: React.TouchEvent, textStyle: TextStyle) => {
-    e.stopPropagation();
-    setIsDragging(true);
-    const touch = e.touches[0];
-    setDragStartPos({
-      x: touch.clientX - (textStyle.x / 100) * containerRef.current!.offsetWidth,
-      y: touch.clientY - (textStyle.y / 100) * containerRef.current!.offsetHeight
-    });
-    onTextSelect(textStyle.id);
-  };
-
-  const handleTouchMove = (e: React.TouchEvent, textStyle: TextStyle) => {
-    if (!isDragging || !containerRef.current) return;
-    e.preventDefault();
-
-    const touch = e.touches[0];
-    const container = containerRef.current;
-    const newX = ((touch.clientX - dragStartPos.x) / container.offsetWidth) * 100;
-    const newY = ((touch.clientY - dragStartPos.y) / container.offsetHeight) * 100;
-
-    onTextStyleChange({
-      ...textStyle,
-      x: Math.max(0, Math.min(100, newX)),
-      y: Math.max(0, Math.min(100, newY))
-    });
-  };
-
-  const handleTouchEnd = () => {
-    setIsDragging(false);
-  };
-
   useEffect(() => {
-    const handleMouseUp = () => handleDragEnd();
-    const handleTouchEndGlobal = () => handleTouchEnd();
-    
-    window.addEventListener('mouseup', handleMouseUp);
-    window.addEventListener('touchend', handleTouchEndGlobal);
-    
+    if (isDragging) {
+      window.addEventListener('mousemove', handleDrag, { passive: false })
+      window.addEventListener('touchmove', handleDrag, { passive: false })
+      window.addEventListener('mouseup', handleDragEnd)
+      window.addEventListener('touchend', handleDragEnd)
+    }
+
     return () => {
-      window.removeEventListener('mouseup', handleMouseUp);
-      window.removeEventListener('touchend', handleTouchEndGlobal);
-    };
-  }, []);
+      window.removeEventListener('mousemove', handleDrag)
+      window.removeEventListener('touchmove', handleDrag)
+      window.removeEventListener('mouseup', handleDragEnd)
+      window.removeEventListener('touchend', handleDragEnd)
+    }
+  }, [isDragging])
 
   return (
     <div 
       ref={containerRef}
-      className="result-display-container relative w-full aspect-video bg-muted rounded-lg overflow-hidden"
-      onClick={() => onTextSelect(null)}
+      className="relative w-full aspect-[4/3] bg-muted rounded-lg overflow-hidden"
     >
-      {/* Layer 1: Original image (base) */}
+      {/* Original Image - Bottom Layer */}
       <div className="absolute inset-0" style={{ zIndex: 1 }}>
-        <Image
-          src={originalImage}
-          alt="Original"
-          fill
-          className="object-contain"
-          style={{ filter: generateFilterString(imageAdjustments) }}
-          unoptimized
-        />
+        {originalImage && (
+          <Image
+            src={originalImage}
+            alt="Original"
+            fill
+            className="object-contain"
+            style={{
+              filter: `brightness(${imageAdjustments.brightness}%) contrast(${imageAdjustments.contrast}%) saturate(${imageAdjustments.saturation}%)`
+            }}
+          />
+        )}
       </div>
 
-      {/* Layer 2: Text layers */}
-      {textStyles.map((style) => (
-        <div
-          key={style.id}
-          className={`absolute cursor-move select-none
-            ${selectedTextId === style.id ? 'ring-2 ring-primary ring-offset-2' : ''}`}
-          style={{
-            left: `${style.x}%`,
-            top: `${style.y}%`,
-            transform: `translate(-50%, -50%) rotate(${style.rotation}deg)`,
-            color: style.color,
-            fontFamily: style.fontFamily,
-            fontSize: `${style.fontSize}px`,
-            fontStyle: style.style.italic ? 'italic' : 'normal',
-            fontWeight: style.style.bold ? 'bold' : 'normal',
-            textDecoration: style.style.underline ? 'underline' : 'none',
-            letterSpacing: `${style.letterSpacing}px`,
-            opacity: style.opacity / 100,
-            textAlign: style.align as any,
-            minWidth: '50px',
-            minHeight: '24px',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: style.align === 'center' ? 'center' : 
-                          style.align === 'right' ? 'flex-end' : 'flex-start',
-            zIndex: 2,  
-            touchAction: 'none'  
-          }}
-          onMouseDown={(e) => handleDragStart(e, style)}
-          onMouseMove={(e) => handleDrag(e, style)}
-          onTouchStart={(e) => handleTouchStart(e, style)}
-          onTouchMove={(e) => handleTouchMove(e, style)}
-          onClick={(e) => {
-            e.stopPropagation();
-            onTextSelect(style.id);
-          }}
-        >
-          {style.text}
-        </div>
-      ))}
+      {/* Text Layers - Middle Layer */}
+      <div className="absolute inset-0 touch-none" style={{ zIndex: 2 }}>
+        {textStyles.map((style) => (
+          <div
+            key={style.id}
+            className={cn(
+              "absolute cursor-move select-none touch-none",
+              selectedTextId === style.id && showTextBox && "ring-2 ring-primary ring-offset-2"
+            )}
+            style={{
+              left: `${style.x}%`,
+              top: `${style.y}%`,
+              opacity: style.opacity / 100,
+              fontFamily: style.fontFamily,
+              fontSize: style.fontSize,
+              fontWeight: style.style.bold ? 'bold' : 'normal',
+              fontStyle: style.style.italic ? 'italic' : 'normal',
+              textDecoration: style.style.underline ? 'underline' : 'none',
+              letterSpacing: `${style.letterSpacing}px`,
+              ...(style.gradient?.enabled ? {
+                background: `linear-gradient(${style.gradient.angle}deg, ${style.gradient.startColor}, ${style.gradient.endColor})`,
+                WebkitBackgroundClip: 'text',
+                WebkitTextFillColor: 'transparent',
+                backgroundClip: 'text',
+              } : {
+                color: style.color
+              }),
+              ...(style.shadow?.enabled ? {
+                textShadow: `${style.shadow.offsetX}px ${style.shadow.offsetY}px ${style.shadow.blur}px ${style.shadow.color}`
+              } : {}),
+              transform: [
+                'translate(-50%, -50%)',
+                `rotate(${style.rotation}deg)`,
+                style.transform?.skewX ? `skewX(${style.transform.skewX}deg)` : '',
+                style.transform?.skewY ? `skewY(${style.transform.skewY}deg)` : '',
+                style.transform?.scale ? `scale(${style.transform.scale})` : ''
+              ].filter(Boolean).join(' '),
+              cursor: isDragging ? 'grabbing' : 'grab',
+              userSelect: 'none',
+              WebkitUserSelect: 'none',
+              touchAction: 'none',
+              pointerEvents: 'auto',
+              minWidth: '50px',
+              minHeight: '24px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              filter: `blur(${style.blur}px)`,
+              WebkitTapHighlightColor: 'transparent',
+            }}
+            onMouseDown={(e) => handleDragStart(e, style)}
+            onTouchStart={(e) => handleDragStart(e, style)}
+            onClick={(e) => {
+              e.stopPropagation()
+              onTextSelect(style.id)
+            }}
+          >
+            {style.text}
+          </div>
+        ))}
+      </div>
 
-      {/* Layer 3: Processed image (top) */}
-      {processedImage && (
-        <div className="absolute inset-0" style={{ zIndex: 3 }}>
+      {/* Background Removed Image - Top Layer */}
+      <div className="absolute inset-0" style={{ zIndex: 3 }}>
+        {processedImage && (
           <Image
             src={processedImage}
             alt="Processed"
             fill
             className="object-contain"
-            unoptimized
+            style={{
+              filter: `brightness(${imageAdjustments.brightness}%) contrast(${imageAdjustments.contrast}%) saturate(${imageAdjustments.saturation}%)`
+            }}
           />
-        </div>
-      )}
+        )}
+      </div>
     </div>
   )
 }

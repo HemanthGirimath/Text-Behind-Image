@@ -2,11 +2,16 @@
 
 export type RemovalMethod = 'api' | 'tensorflow';
 
+interface RemovalResult {
+  blob?: Blob;
+  error?: string;
+}
+
 export async function removeBackground(
   input: File | string,
   onProgress?: (progress: number) => void,
   method: RemovalMethod = 'api'
-): Promise<Blob> {
+): Promise<RemovalResult> {
   try {
     if (method === 'tensorflow') {
       // Convert input to image element
@@ -19,10 +24,10 @@ export async function removeBackground(
       });
       
       // return removeTensorFlowBackground(img, onProgress);
+      throw new Error('TensorFlow method not implemented');
     }
 
-    // API method (existing code)
-    // Convert input to FormData
+    // API method
     const formData = new FormData();
     if (input instanceof File) {
       formData.append('image', input);
@@ -33,7 +38,6 @@ export async function removeBackground(
       formData.append('image', blob);
     }
 
-    // Call our API route
     const response = await fetch('/api/remove-background', {
       method: 'POST',
       body: formData,
@@ -44,9 +48,12 @@ export async function removeBackground(
       throw new Error(error || 'Failed to remove background');
     }
 
-    return response.blob();
-  } catch (error) {
-    console.error('Error removing background:', error);
-    throw error;
+    const blob = await response.blob();
+    return { blob };
+  } catch (err) {
+    console.error('Error removing background:', err);
+    return { 
+      error: err instanceof Error ? err.message : 'Failed to remove background'
+    };
   }
 }

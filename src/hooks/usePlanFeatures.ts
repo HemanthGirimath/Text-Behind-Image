@@ -1,14 +1,28 @@
+'use client'
+
 import { useSession } from 'next-auth/react';
-import { isFeatureAvailable, getMaxValue, isPlanActive, PlanType } from '@/lib/planFeatures';
+import { PLAN_FEATURES, PlanType, FeatureType } from '@/lib/plans';
 
 export function usePlanFeatures() {
   const { data: session } = useSession();
-  const userPlan = (session?.user as any)?.activePlan as PlanType || 'free';
+  const userPlan = (session?.user?.plan || 'free') as PlanType;
+
+  const hasFeature = (feature: FeatureType) => {
+    const planFeatures = PLAN_FEATURES[userPlan];
+    return planFeatures.includes(feature);
+  };
+
+  const canAccessPlanFeatures = (plan: PlanType) => {
+    const planOrder: PlanType[] = ['free', 'basic', 'premium'];
+    const userPlanIndex = planOrder.indexOf(userPlan);
+    const requiredPlanIndex = planOrder.indexOf(plan);
+    return userPlanIndex >= requiredPlanIndex;
+  };
 
   return {
-    canUseFeature: (feature: string) => isFeatureAvailable(userPlan, feature as any),
-    getMaxValue: (feature: 'maxFonts' | 'maxLayers') => getMaxValue(userPlan, feature),
-    isPlanActive: (requiredPlan: PlanType) => isPlanActive(userPlan, requiredPlan),
-    currentPlan: userPlan,
+    userPlan,
+    hasFeature,
+    canAccessPlanFeatures,
+    isAuthenticated: !!session?.user
   };
 }

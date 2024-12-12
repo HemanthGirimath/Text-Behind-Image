@@ -4,6 +4,7 @@ import { prisma } from "./prisma";
 import CredentialsProvider from "next-auth/providers/credentials";
 import bcrypt from "bcryptjs";
 import { User } from "@prisma/client";
+import { PrismaClient } from "@prisma/client";
 
 // Extend the built-in session types
 declare module "next-auth" {
@@ -34,9 +35,16 @@ declare module "next-auth/jwt" {
 }
 
 export const authOptions: NextAuthOptions = {
+  pages:{
+    signIn: "/login",
+    signOut: "/logout",
+    error: "/login",
+    verifyRequest: "/login"
+  },
   adapter: PrismaAdapter(prisma),
   session: {
-    strategy: "jwt"
+    strategy: "jwt",
+    maxAge: 30 * 24 * 60 * 60, // 30 days
   },
   providers: [
     CredentialsProvider({
@@ -46,52 +54,73 @@ export const authOptions: NextAuthOptions = {
         password: { label: "Password", type: "password" }
       },
       async authorize(credentials) {
-        if (!credentials?.email || !credentials?.password) {
-          return null;
-        }
-
-        const user = await prisma.user.findUnique({
-          where: {
-            email: credentials.email
-          },
-          select: {
-            id: true,
-            email: true,
-            name: true,
-            password: true,
-            plan: true
+        try {
+          if (!credentials?.email || !credentials?.password) {
+            throw new Error("Please enter both email and password");
           }
-        });
 
-        if (!user || !user.password) {
-          return null;
+          // Create a new PrismaClient instance for this request
+          const prismaClient = new PrismaClient();
+          
+          try {
+            const user = await prismaClient.user.findUnique({
+              where: {
+                email: credentials.email
+              },
+              select: {
+                id: true,
+                email: true,
+                name: true,
+                password: true,
+                plan: true
+              }
+            });
+
+            if (!user) {
+              throw new Error("No user found with this email");
+            }
+
+            if (!user.password) {
+              throw new Error("Please login with the method you used to create your account");
+            }
+
+            const isPasswordValid = await bcrypt.compare(
+              credentials.password,
+              user.password
+            );
+
+            if (!isPasswordValid) {
+              throw new Error("Invalid password");
+            }
+
+            return {
+              id: user.id,
+              email: user.email || "",
+              name: user.name,
+              plan: user.plan || "free"
+            };
+          } finally {
+            // Always disconnect the client
+            await prismaClient.$disconnect();
+          }
+        } catch (error) {
+          console.error("Auth error:", error);
+          throw error;
         }
-
-        const isPasswordValid = await bcrypt.compare(
-          credentials.password,
-          user.password
-        );
-
-        if (!isPasswordValid) {
-          return null;
-        }
-
-        return {
-          id: user.id,
-          email: user.email || "",
-          name: user.name,
-          plan: user.plan || "free"
-        };
       }
     })
   ],
   callbacks: {
-    async jwt({ token, user }) {
+    async jwt({ token, user, trigger, session }) {
       if (user) {
+        // Initial sign in
         token.id = user.id;
         token.email = user.email;
         token.name = user.name;
         token.plan = user.plan;
+      } else if (trigger === "update" && session?.plan) {
+        // Update token if plan changes
+        token.plan = session.plan;
       }
       return token;
     },
@@ -105,8 +134,13 @@ export const authOptions: NextAuthOptions = {
       return session;
     }
   },
-  pages: {
-    signIn: '/login',
-    error: '/login'
+  debug: process.env.NODE_ENV === 'development',
+  events: {
+    async signIn(message) {
+      console.log("User signed in:", message.user.email);
+    },
+    async signOut(message) {
+      console.log("User signed out:", message.token?.email);
+    }
   }
 };

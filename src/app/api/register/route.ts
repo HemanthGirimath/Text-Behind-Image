@@ -1,59 +1,59 @@
 import { NextResponse } from "next/server";
-import { hash } from "bcrypt";
-import { prisma } from "@/lib/prisma";
+import bcrypt from "bcryptjs";
+import { PrismaClient } from "@prisma/client";
 
 export async function POST(req: Request) {
   try {
     const { email, password, name } = await req.json();
 
-    // Check if required fields are present
-    if (!email || !password || !name) {
+    if (!email || !password) {
       return NextResponse.json(
-        { error: "Missing required fields" },
+        { error: "Email and password are required" },
         { status: 400 }
       );
     }
 
-    // Check if user already exists
-    const existingUser = await prisma.user.findUnique({
-      where: { email },
-    });
+    // Create a new PrismaClient instance for this request
+    const prismaClient = new PrismaClient();
 
-    if (existingUser) {
-      return NextResponse.json(
-        { error: "User already exists" },
-        { status: 400 }
-      );
-    }
+    try {
+      // Check if user already exists
+      const existingUser = await prismaClient.user.findUnique({
+        where: { email },
+      });
 
-    // Hash the password
-    const hashedPassword = await hash(password, 10);
+      if (existingUser) {
+        return NextResponse.json(
+          { error: "User already exists" },
+          { status: 400 }
+        );
+      }
 
-    // Create the user
-    const user = await prisma.user.create({
-      data: {
-        email,
-        name,
-        password: hashedPassword,
-        plan: "free",
-      },
-    });
+      // Hash password
+      const hashedPassword = await bcrypt.hash(password, 10);
 
-    return NextResponse.json(
-      {
-        user: {
-          id: user.id,
-          email: user.email,
-          name: user.name,
-          plan: user.plan,
+      // Create user
+      const user = await prismaClient.user.create({
+        data: {
+          email,
+          password: hashedPassword,
+          name,
+          plan: "free",
         },
-      },
-      { status: 201 }
-    );
+      });
+
+      // Remove password from response
+      const { password: _, ...userWithoutPassword } = user;
+
+      return NextResponse.json(userWithoutPassword);
+    } finally {
+      // Always disconnect the client
+      await prismaClient.$disconnect();
+    }
   } catch (error) {
     console.error("Registration error:", error);
     return NextResponse.json(
-      { error: "Error creating user" },
+      { error: "Failed to create user" },
       { status: 500 }
     );
   }

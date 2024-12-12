@@ -8,7 +8,6 @@ export const DEFAULT_TEXT_STYLE: TextStyle = {
   fontSize: 48,
   fontFamily: 'Arial',
   color: '#000000',
-  align: 'center' as const,
   style: {
     bold: false,
     italic: false,
@@ -17,6 +16,7 @@ export const DEFAULT_TEXT_STYLE: TextStyle = {
   opacity: 100,
   rotation: 0,
   letterSpacing: 0,
+  blur: 0,
   shadow: {
     enabled: false,
     color: '#000000',
@@ -24,28 +24,17 @@ export const DEFAULT_TEXT_STYLE: TextStyle = {
     offsetX: 0,
     offsetY: 4
   },
-  glow: {
-    enabled: false,
-    color: '#ffffff',
-    blur: 20,
-    intensity: 1
-  },
-  outline: {
-    enabled: false,
-    color: '#000000',
-    width: 2
-  },
   gradient: {
     enabled: false,
-    colors: ['#ff0000', '#00ff00']
+    startColor: '#ff0000',
+    endColor: '#00ff00',
+    angle: 0
   },
   transform: {
-    enabled: false,
-    scaleX: 1,
-    scaleY: 1,
     skewX: 0,
-    skewY: 0
-  },
+    skewY: 0,
+    scale: 1
+  }
 };
 
 export type PlanType = 'free' | 'basic' | 'premium';
